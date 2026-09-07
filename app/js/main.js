@@ -9,7 +9,7 @@ import { createCanvasView } from "./canvasview.js";
 import { setLocale, resolveLocale, translateDom, t, LOCALE_CHOICES } from "./i18n.js";
 import { isWrapper, isIOSScheme, deliverNative } from "./platform.js";
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
 globalThis.__blotErrors = [];
 window.addEventListener("error", (ev) => __blotErrors.push(String(ev.message)));

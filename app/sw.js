@@ -1,6 +1,6 @@
 // Blot service worker: offline shell only. Documents never touch a cache.
 
-const VERSION = "blot-v0.1.0";
+const VERSION = "blot-v0.2.0";
 
 const PRECACHE = [
   "/",
