@@ -125,7 +125,7 @@ async function main() {
     await c.evalJs("document.getElementById('btn-share').click(); 'ok'");
     await waitFor(() => c.evalJs("!!window.__shared"), "share handed to bridge");
     const out = await c.evalJs("window.__shared");
-    check("share-out: pdf reaches the bridge", out.size > 1000 && out.mime === "application/pdf" && /^redacted-[a-z2-9]{4}\.pdf$/.test(out.name), JSON.stringify(out));
+    check("share-out: pdf reaches the bridge", out.size > 1000 && out.mime === "application/pdf" && /^redacted-document-[a-z2-9]{4}\.pdf$/.test(out.name), JSON.stringify(out));
 
     const errs = await c.evalJs("(__blotErrors || []).slice(0, 5)");
     check("console clean", errs.length === 0, JSON.stringify(errs));

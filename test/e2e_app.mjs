@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
-import { makeTextPdf, makeFormPdf, makeSigPdf, makeEncryptedish } from "./fixtures-pdf.mjs";
+import { makeTextPdf, makeFormPdf, makeBlankFormPdf, makeSigPdf, makeEncryptedish } from "./fixtures-pdf.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const HTTP_PORT = 8961;
@@ -116,6 +116,8 @@ async function main() {
     );
     const formPdf = path.join(fixDir, "form.pdf");
     writeFileSync(formPdf, makeFormPdf());
+    const blankFormPdf = path.join(fixDir, "blank-form.pdf");
+    writeFileSync(blankFormPdf, makeBlankFormPdf());
     const sigPdf = path.join(fixDir, "signed.pdf");
     writeFileSync(sigPdf, makeSigPdf());
     const lockedPdf = path.join(fixDir, "locked.pdf");
@@ -132,6 +134,20 @@ async function main() {
     await c.send("Page.navigate", { url: BASE + "/" });
     await waitFor(() => c.evalJs("!!window.__blotApi && __blotApi.state.screen === 'start'"), "start screen");
 
+    // ---------------------------------------------- wasm codecs reachable
+    // JBIG2/JPEG2000 pages decode through these; before wasmUrl was wired
+    // up, the worker's fetch prefix was the literal string "null" and both
+    // codecs failed silently, leaving the page image blank with no error
+    // anywhere in the UI. This proves the served bytes are real, valid
+    // wasm, from the exact URL app/js/pdfdoc.js hands the worker.
+    for (const codec of ["jbig2", "openjpeg"]) {
+      const ok = await c.evalJs(
+        `fetch("/vendor/pdfjs/wasm/${codec}.wasm").then((r) => r.arrayBuffer()).then((buf) => WebAssembly.compile(buf).then(() => true, () => false))`,
+        true,
+      );
+      check(`${codec}.wasm serves and compiles`, ok === true);
+    }
+
     // -------------------------------------------------------- refusals
     for (const [file, label] of [
       [formPdf, "filled form"],
@@ -145,6 +161,15 @@ async function main() {
       await c.evalJs("document.getElementById('btn-refusal-back').click(); 'ok'");
       await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), "back to start");
     }
+
+    // A blank AcroForm field (no /V value) has nothing outside the page
+    // stream to lose; it must open into the editor like any other PDF,
+    // not get refused as though it were filled.
+    await pickFile(c, blankFormPdf);
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'edit' && __blotApi.state.pages === 1"), "blank form opened");
+    check("blank form fixture is NOT refused", true);
+    await c.evalJs("document.getElementById('btn-close').click(); 'ok'");
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), "back to start after blank form");
 
     // ------------------------------------------------- open + ink + export
     await pickFile(c, textPdf);

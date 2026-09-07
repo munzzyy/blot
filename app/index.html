@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'">
 <title>Blot: redaction that destroys what it covers</title>
 <meta name="description" content="A document redactor with no take-backs: pages become pixels, ink becomes part of the page, and the output is re-checked to contain zero extractable text.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f0eef6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#131118" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="css/app.css">
 </head>
@@ -39,20 +39,21 @@
 
   <div class="web-only landing">
     <section class="lnd">
-      <h2 data-i18n>Why rasterize</h2>
+      <h2 data-i18n>Why the output is a picture, not a document</h2>
       <p data-i18n>A PDF is not what it looks like: under the visible page there can be a text layer, form data, comments, attachments, and earlier versions of the document. Tools that draw rectangles over that stack keep the stack. Blot renders each page to plain pixels and builds a brand new PDF containing only those pixels, so there is no stack left to leak. The cost is honest too: the output is a picture of a document, not an editable one.</p>
     </section>
     <section class="lnd">
       <h2 data-i18n>What it refuses, on purpose</h2>
       <ul class="honest-list">
         <li data-i18n>Password-protected files. Unlock them first; guessing at partial decryption is how tools mishandle documents.</li>
-        <li data-i18n>Forms with filled fields and XFA documents. Their content lives outside the page stream, where rendering can silently miss it. Print the form to a fresh PDF first, then bring that here.</li>
+        <li data-i18n>Forms with filled-in fields, and XFA documents (a dynamic form format some government and legal PDFs use). Their content lives outside the page stream, where rendering can silently miss it. Print the form to a fresh PDF first, then bring that here.</li>
         <li data-i18n>Digitally signed documents. Flattening destroys the signature, and a redactor should not quietly do that to the one thing the file was for.</li>
       </ul>
     </section>
     <section class="lnd" id="landing-app">
       <h2 data-i18n>The Android app cannot phone home</h2>
       <p data-i18n>Blot for Android requests no permissions at all. Your documents cannot leave the device through this app, and the manifest proves it.</p>
+      <p data-i18n>It is not in the Play Store, so Android will warn you that it is blocking an install from outside the store. That warning exists for apps that ask for permissions and misuse them; Blot asks for none. Settings will offer a one-time "install anyway"; that is the only extra step.</p>
       <p class="apk-row"><a class="btn-primary" href="https://github.com/munzzyy/blot/releases/latest/download/blot.apk" data-i18n>Download the APK</a></p>
     </section>
     <section class="lnd">
@@ -72,7 +73,7 @@
 <section id="screen-refusal" class="screen" hidden>
   <div class="hero">
     <div class="refusal-badge">!</div>
-    <h2 id="refusal-title"></h2>
+    <h2 id="refusal-title" tabindex="-1"></h2>
     <p id="refusal-body" class="pitch"></p>
     <button id="btn-refusal-back" class="btn-primary" data-i18n>Choose another file</button>
   </div>
@@ -92,12 +93,12 @@
   </header>
 
   <div id="canvas-wrap" class="canvas-wrap">
-    <canvas id="canvas" tabindex="0" data-i18n-attr="aria-label" aria-label="Page canvas. Press B to add an ink box, arrow keys to move it, Shift and arrows to resize, Delete to remove, PageUp and PageDown to change pages."></canvas>
-    <div id="render-progress" class="render-progress" hidden><span id="render-progress-text"></span></div>
+    <canvas id="canvas" tabindex="0" role="application" data-i18n-attr="aria-label" aria-label="Page canvas. Press B to add an ink box, arrow keys to move it, Shift and arrows to resize, Delete to remove, PageUp and PageDown to change pages."></canvas>
+    <div id="render-progress" class="render-progress" role="status" hidden><span id="render-progress-text"></span></div>
   </div>
 
-  <div class="toolbar" role="toolbar" data-i18n-attr="aria-label" aria-label="Redaction tools">
-    <span class="tool-note-inline" data-i18n>Drag to ink. Ink is permanent in the export.</span>
+  <div class="toolbar" role="group" data-i18n-attr="aria-label" aria-label="Redaction tools">
+    <span class="tool-note-inline" data-i18n>Drag to ink (draw over what to hide). Ink is permanent in the export.</span>
     <button id="btn-del-box" class="btn-ghost del-chip" hidden data-i18n>Remove box</button>
     <span class="toolbar-space"></span>
     <span id="box-count" class="box-count"></span>
@@ -112,6 +113,10 @@
     <div id="done-badge" class="done-badge" data-testid="done-badge">✓</div>
     <h2 id="done-title" tabindex="-1" data-i18n>Checked clean</h2>
     <p id="done-sub" class="done-sub"></p>
+    <p id="done-report-contact" class="done-sub" hidden>
+      <span data-i18n>Report it:</span> <a href="mailto:Munzzyy1@proton.me">Munzzyy1@proton.me</a>
+      <span data-i18n>or</span> <a href="https://github.com/munzzyy/blot/security/policy" data-i18n>open a security report on GitHub</a>.
+    </p>
     <div class="done-report">
       <h3 data-i18n>The finished file</h3>
       <ul id="done-facts"></ul>

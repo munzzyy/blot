@@ -62,6 +62,7 @@ function formPdf(fieldExtra) {
 }
 
 export const makeFormPdf = () => formPdf("/FT /Tx /V (typed-into-a-form)");
+export const makeBlankFormPdf = () => formPdf("/FT /Tx /V ()");
 export const makeSigPdf = () => formPdf("/FT /Sig");
 
 // An /Encrypt entry in the trailer makes readers demand a password; the

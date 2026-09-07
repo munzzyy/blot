@@ -1,0 +1,39 @@
+# XcodeGen spec: `xcodegen generate` writes Blot.xcodeproj from this file,
+# so the project itself never has to live in git. Build steps: docs/IOS.md.
+name: Blot
+options:
+  bundleIdPrefix: io.github.munzzyy
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+targets:
+  Blot:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      # The same app/ the website and the Android wrapper ship, bundled as a
+      # folder reference so every file rides along unmodified.
+      - path: ../app
+        type: folder
+        buildPhase: resources
+      - path: Assets.xcassets
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Blot
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # No encryption of any kind in this app; nothing export-controlled.
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.munzzyy.blot
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.9"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_STYLE: Automatic

@@ -6,7 +6,26 @@ import * as pdfjs from "../vendor/pdfjs/pdf.mjs";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL("../vendor/pdfjs/pdf.worker.mjs", import.meta.url).href;
 
+// JBIG2 and JPEG2000 pages decode through these; without a wasmUrl the
+// worker's fetch for jbig2.wasm/openjpeg.wasm fails silently and the page
+// image comes back blank. Trailing slash required: pdf.js rejects a
+// factory URL without one.
+const WASM_URL = new URL("../vendor/pdfjs/wasm/", import.meta.url).href;
+
 export const MAX_PAGES = 60;
+
+// A blank AcroForm field renders as whatever its normal appearance stream
+// shows (usually just an outline box) and flattens exactly like any other
+// page content: nothing outside the page stream to lose. Only a FILLED
+// field carries content that lives outside the page image, which is the
+// actual risk the refusal exists for, so refuse on the value, not the
+// widget's mere presence.
+function isFilledValue(v) {
+  if (v == null) return false;
+  if (Array.isArray(v)) return v.some((x) => x != null && x !== "" && x !== "Off");
+  if (typeof v === "string") return v !== "" && v !== "Off";
+  return true;
+}
 
 // Widget annotations are the reliable field signal: the field-tree API can
 // come back empty for documents whose widgets parse fine.
@@ -16,15 +35,15 @@ async function scanForFields(doc) {
     for (const a of await page.getAnnotations()) {
       if (a.subtype !== "Widget") continue;
       if (a.fieldType === "Sig") return "signed";
-      return "forms";
+      if (isFilledValue(a.fieldValue)) return "forms";
     }
   }
   const fields = await doc.getFieldObjects();
   if (fields && Object.keys(fields).length > 0) {
     for (const list of Object.values(fields)) {
       if (list.some((f) => f.type === "signature")) return "signed";
+      if (list.some((f) => isFilledValue(f.fieldValue))) return "forms";
     }
-    return "forms";
   }
   return null;
 }
@@ -33,7 +52,7 @@ async function scanForFields(doc) {
 export async function loadPdf(bytes) {
   // enableXfa makes isPureXfa trustworthy; without it the XFA gate is
   // dead code and dynamic forms sail through half-rendered.
-  const task = pdfjs.getDocument({ data: bytes, isEvalSupported: false, enableXfa: true });
+  const task = pdfjs.getDocument({ data: bytes, isEvalSupported: false, enableXfa: true, wasmUrl: WASM_URL });
   let doc;
   try {
     doc = await task.promise;

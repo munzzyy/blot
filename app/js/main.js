@@ -7,6 +7,7 @@ import { createEditor, addOp, undo, redo, paintOps } from "./editor.js";
 import { bake, encode } from "./render.js";
 import { createCanvasView } from "./canvasview.js";
 import { setLocale, resolveLocale, translateDom, t, LOCALE_CHOICES } from "./i18n.js";
+import { isWrapper, isIOSScheme, deliverNative } from "./platform.js";
 
 const VERSION = "0.1.0";
 
@@ -48,7 +49,7 @@ const app = {
       current: session?.current ?? 0,
       boxes: session ? session.pages.reduce((n, p) => n + paintOps(p.editor).length, 0) : 0,
       version: VERSION,
-      wrapper: !!globalThis.BlotNative,
+      wrapper: isWrapper(),
     };
   },
   openBytes,
@@ -59,19 +60,26 @@ globalThis.__blotApi = app;
 // shared canvasview suite in the sibling repo.
 globalThis.__blotTestHooks = { addOp };
 
-function show(name) {
+// focusReturn: this screen is a refusal/error return, not the initial
+// boot, so move focus there too instead of leaving it stranded on a node
+// that just got hidden.
+function show(name, focusReturn) {
   for (const s of ["start", "refusal", "edit", "done"]) $(`screen-${s}`).hidden = s !== name;
   window.scrollTo(0, 0);
   if (name === "edit") $("canvas").focus({ preventScroll: true });
   if (name === "done") $("done-title").focus({ preventScroll: true });
+  if (name === "refusal") $("refusal-title").focus({ preventScroll: true });
+  if (name === "start" && focusReturn) $("dropzone").focus({ preventScroll: true });
 }
+
+const PRINT_TO_PDF_HINT = t("On a phone: open it in your PDF viewer, use Share or the menu, choose Print, then pinch open the print preview and share or save THAT as a PDF.");
 
 const REFUSALS = {
   encrypted: () => [t("This PDF is password protected"), t("Blot will not guess at partial decryption. Remove the password in your PDF viewer first, then bring the unlocked file here.")],
-  forms: () => [t("This PDF is a filled form"), t("Form answers live outside the page image, where flattening can silently lose or miss them. Print the form to a new PDF from your viewer, check the result shows everything, then redact that file here.")],
+  forms: () => [t("This PDF is a filled form"), `${t("Form answers live outside the page image, where flattening can silently lose or miss them. Print the form to a new PDF from your viewer, check the result shows everything, then redact that file here.")} ${PRINT_TO_PDF_HINT}`],
   signed: () => [t("This PDF is digitally signed"), t("Flattening would destroy the signature, and a redactor should not quietly break the one thing this file was issued for. If you accept losing the signature, print to PDF first and bring that.")],
-  xfa: () => [t("This PDF uses XFA forms"), t("XFA content renders unreliably outside Adobe tools, and redacting what you cannot fully see is how leaks happen. Print it to a regular PDF first.")],
-  toolong: () => [t("This PDF is too long"), t("Blot handles up to {max} pages at a time, because every page is held in memory as an image. Split the document and redact the parts.", { max: MAX_PAGES })],
+  xfa: () => [t("This PDF uses XFA forms"), `${t("XFA content renders unreliably outside Adobe tools, and redacting what you cannot fully see is how leaks happen. Print it to a regular PDF first.")} ${PRINT_TO_PDF_HINT}`],
+  toolong: () => [t("This PDF is too long"), t("Blot handles up to {max} pages at a time, because every page is held in memory as an image. Split the document and redact the parts: most PDF viewers, including the Files app on a phone, can export a page range as a new PDF.", { max: MAX_PAGES })],
   unreadable: () => [t("This file could not be read as a PDF"), t("It may be damaged, or not really a PDF. Nothing was processed.")],
 };
 
@@ -104,7 +112,7 @@ async function openBytes(bytes, name = "document.pdf") {
   } catch (err) {
     __blotErrors.push(`render: ${err}`);
     toast(t("Rendering failed partway; this document may be too large for this device."), 6000);
-    show("start");
+    show("start", true);
     return false;
   } finally {
     $("render-progress").hidden = true;
@@ -142,6 +150,7 @@ function gotoPage(idx) {
   view.clearSelection();
   updatePageUi();
   view.fit();
+  announce(t("Page {n} of {total}", { n: session.current + 1, total: session.pages.length }));
 }
 
 function closeDoc() {
@@ -202,6 +211,7 @@ function renderProof(verify, size) {
   $("done-sub").textContent = clean
     ? t("The finished file was reopened and re-checked: no extractable text, no annotations, no form fields. Pixels only.")
     : t("The finished file was re-checked and something unexpected is in it. Do not share it; please report this.");
+  $("done-report-contact").hidden = clean;
   const facts = $("done-facts");
   facts.textContent = "";
   const lines = [
@@ -218,27 +228,40 @@ function renderProof(verify, size) {
   }
 }
 
-const outName = () => {
+// Keeps a trace of what the file was, so it doesn't come back as a bare
+// random tag with nothing to tell it apart from the next export. The
+// random tag stays too: two redactions of the same document must not
+// collide or silently overwrite each other.
+const outName = (original) => {
   const raw = crypto.getRandomValues(new Uint8Array(4));
   const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
   let tag = "";
   for (const b of raw) tag += alphabet[b % alphabet.length];
-  return `redacted-${tag}.pdf`;
+  const stem = String(original || "")
+    .replace(/\.[^./\\]*$/, "")
+    .replace(/[^A-Za-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+  return stem ? `redacted-${stem}-${tag}.pdf` : `redacted-${tag}.pdf`;
 };
 
 async function deliver(kind) {
   if (!session?.exported) return;
   const blob = new Blob([session.exported.bytes], { type: "application/pdf" });
-  const name = outName();
-  const native = globalThis.BlotNative;
-  if (native) {
-    let bin = "";
-    const bytes = session.exported.bytes;
-    for (let i = 0; i < bytes.length; i += 0x8000) {
-      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  const name = outName(session.name);
+  if (isWrapper()) {
+    if (deliverNative(kind, session.exported.bytes, "application/pdf", name)) {
+      // The bridge only starts a hand-off; the OS (share sheet, Downloads,
+      // Save to Files) decides where the file actually lands. "Downloaded"
+      // would be a lie here.
+      if (isIOSScheme()) toast(t("Choose where to save it."));
+      return;
     }
-    if (kind === "share") native.shareFile(btoa(bin), "application/pdf", name);
-    else native.saveFile(btoa(bin), "application/pdf", name);
+    // On iOS the web fallback below is dead: a blob: download navigation
+    // is cancelled by the wrapper's navigation policy, so it would fail
+    // silently while the UI kept going. A build without the save bridge
+    // must say so instead.
+    toast(t("This build of Blot cannot save or share files yet. Update the app and try again."), 6000);
     return;
   }
   if (kind === "share" && navigator.canShare) {
@@ -292,17 +315,34 @@ function wireEvents() {
 
   $("btn-refusal-back").addEventListener("click", () => show("start"));
 
+  // Armed state has no timeout: a timed window is unreachable for anyone
+  // who needs more than a few seconds to act. It stays armed until either
+  // the second press discards the document, or any other interaction
+  // disarms it, so a slower press never lands on a stale state.
+  function disarmClose() {
+    if (!closeArmed) return;
+    closeArmed = false;
+    $("btn-close").setAttribute("aria-label", t("Close this document"));
+  }
   $("btn-close").addEventListener("click", () => {
     if (session && app.state.boxes > 0 && !closeArmed) {
       closeArmed = true;
-      toast(t("Your ink is not exported yet. Tap close again to discard it."), 4000);
-      setTimeout(() => {
-        closeArmed = false;
-      }, 4000);
+      $("btn-close").setAttribute("aria-label", t("Press again to discard your ink"));
+      toast(t("Your ink is not exported yet. Tap close again to discard it."));
       return;
     }
     closeArmed = false;
     closeDoc();
+  });
+  document.addEventListener(
+    "click",
+    (ev) => {
+      if (closeArmed && ev.target !== $("btn-close")) disarmClose();
+    },
+    true,
+  );
+  document.addEventListener("keydown", (ev) => {
+    if (closeArmed && ev.key === "Escape") disarmClose();
   });
 
   $("btn-prev").addEventListener("click", () => gotoPage(session.current - 1));
@@ -312,12 +352,14 @@ function wireEvents() {
     session.exported = null;
     view.clearSelection();
     updatePageUi();
+    announce(t("Box removed. {count} on this page.", { count: paintOps(session.pages[session.current].editor).length }));
   });
   $("btn-redo").addEventListener("click", () => {
     redo(session.pages[session.current].editor);
     session.exported = null;
     view.render();
     updatePageUi();
+    announce(t("Box restored. {count} on this page.", { count: paintOps(session.pages[session.current].editor).length }));
   });
   $("btn-del-box").addEventListener("click", () => view.deleteSelected());
   $("btn-export").addEventListener("click", runExport);
@@ -380,9 +422,11 @@ async function boot() {
   buildLocalePicker();
 
   const native = globalThis.BlotNative;
-  if (native) {
+  if (isWrapper()) {
     for (const node of document.querySelectorAll(".web-only")) node.remove();
-    $("drop-hint").textContent = t("or share a PDF to Blot from any app");
+    // Android accepts a PDF shared in from any app; iOS has no equivalent
+    // yet, so it gets the same in-app file picker a web visitor has.
+    $("drop-hint").textContent = native ? t("or share a PDF to Blot from any app") : t("or open one from Files");
   } else if ("serviceWorker" in navigator && location.protocol === "https:") {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
