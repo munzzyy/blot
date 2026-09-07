@@ -32,7 +32,7 @@ export function normRect(rect, width, height) {
   return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
 
-const MIN_SIZE = 4;
+export const MIN_SIZE = 4;
 
 export function addOp(editor, type, rect) {
   const r = normRect(rect, editor.width, editor.height);
@@ -41,6 +41,20 @@ export function addOp(editor, type, rect) {
   editor.ops.push(op);
   editor.undone = [];
   return op;
+}
+
+// Grows a rect that is under MIN_SIZE on one or both axes up to MIN_SIZE,
+// keeping it centered on its original middle point and clamped to the
+// page. A suggestion the producer measured at 1-2 pixels wide (a short
+// match inside a long text item) still needs to become a real box on
+// accept; failing it silently would drop the suggestion with no ink and
+// no feedback, which is worse than covering a hair more than asked.
+export function padToMinSize(rect, width, height) {
+  const cx = rect.x + rect.w / 2;
+  const cy = rect.y + rect.h / 2;
+  const w = Math.max(rect.w, MIN_SIZE);
+  const h = Math.max(rect.h, MIN_SIZE);
+  return normRect({ x: cx - w / 2, y: cy - h / 2, w, h }, width, height);
 }
 
 export function setCrop(editor, rect) {
@@ -116,4 +130,36 @@ export function pixelCell(rect) {
 // What the exported image will be: the crop area, or the full frame.
 export function outputRect(editor) {
   return editor.crop ?? { x: 0, y: 0, w: editor.width, h: editor.height };
+}
+
+// The same integer-snapped crop origin bake() uses. Anything that needs
+// to map a rect from full-canvas pixel space into output-image pixel
+// space (the coverage check) must use this, or it disagrees with what
+// bake() actually drew.
+export function cropOffset(editor) {
+  const raw = outputRect(editor);
+  return { x: Math.ceil(raw.x), y: Math.ceil(raw.y) };
+}
+
+// Clones a box onto a set of other pages' editors, scaled to each
+// target's own pixel dimensions so the same relative spot (a header,
+// footer, or Bates stamp) lands correctly even across a mixed-size
+// document. Reports what happened per page instead of trusting the
+// silent clamp in normRect/addOp: a page whose scaled box got clamped
+// smaller than intended is flagged so the caller can say so.
+export function repeatAcrossPages(sourceRect, sourceSize, type, targets) {
+  return targets.map(({ index, editor }) => {
+    const sx = editor.width / sourceSize.width;
+    const sy = editor.height / sourceSize.height;
+    const scaled = {
+      x: sourceRect.x * sx,
+      y: sourceRect.y * sy,
+      w: sourceRect.w * sx,
+      h: sourceRect.h * sy,
+    };
+    const clamped = normRect(scaled, editor.width, editor.height);
+    const clampedByEdge = Math.abs(clamped.w - scaled.w) > 0.5 || Math.abs(clamped.h - scaled.h) > 0.5;
+    const op = addOp(editor, type, scaled);
+    return { index, applied: !!op, clamped: clampedByEdge };
+  });
 }

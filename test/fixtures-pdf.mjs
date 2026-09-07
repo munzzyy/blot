@@ -41,6 +41,32 @@ export function makeTextPdf(lines) {
   ]);
 }
 
+// Two pages, same size, for exercising repeat-across-pages: a box drawn
+// on page 1 should be cloneable onto page 2.
+export function makeTwoPageTextPdf(page1Lines, page2Lines) {
+  const c1 = `BT /F1 12 Tf 50 700 Td ${page1Lines.map((l, i) => `${i ? "0 -20 Td " : ""}(${l.replace(/[\\()]/g, "\\$&")}) Tj `).join("")}ET`;
+  const c2 = `BT /F1 12 Tf 50 700 Td ${page2Lines.map((l, i) => `${i ? "0 -20 Td " : ""}(${l.replace(/[\\()]/g, "\\$&")}) Tj `).join("")}ET`;
+  return assemble([
+    { id: 1, src: "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" },
+    { id: 2, src: "2 0 obj\n<< /Type /Pages /Kids [ 3 0 R 4 0 R ] /Count 2 >>\nendobj\n" },
+    {
+      id: 3,
+      src:
+        "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] " +
+        "/Resources << /Font << /F1 6 0 R >> >> /Contents 5 0 R >>\nendobj\n",
+    },
+    {
+      id: 4,
+      src:
+        "4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] " +
+        "/Resources << /Font << /F1 6 0 R >> >> /Contents 7 0 R >>\nendobj\n",
+    },
+    { id: 5, src: `5 0 obj\n<< /Length ${c1.length} >>\nstream\n${c1}\nendstream\nendobj\n` },
+    { id: 6, src: "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n" },
+    { id: 7, src: `7 0 obj\n<< /Length ${c2.length} >>\nstream\n${c2}\nendstream\nendobj\n` },
+  ]);
+}
+
 function formPdf(fieldExtra) {
   return assemble([
     { id: 1, src: "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [ 6 0 R ] >> >>\nendobj\n" },

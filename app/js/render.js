@@ -29,44 +29,56 @@ export function pixelateRegion(ctx, canvas, rect, cell) {
   ctx.imageSmoothingEnabled = prev;
 }
 
-// The finished output: cropped frame, ops burned in, in image resolution.
-export function bake(bitmap, editor) {
+// The crop origin, snapped the same way bake() snaps it: INWARD to whole
+// pixels, so the base image lands on integer coordinates and a fractional
+// offset never smears removed edge content into the first kept pixel row.
+export function cropOutRect(editor) {
   const raw = outputRect(editor);
-  // Crop snaps INWARD to whole pixels so the base image lands on integer
-  // coordinates: a fractional offset would smear removed edge content into
-  // the first kept pixel row.
-  const out = {
+  return {
     x: Math.ceil(raw.x),
     y: Math.ceil(raw.y),
     w: Math.max(1, Math.floor(raw.x + raw.w) - Math.ceil(raw.x)),
     h: Math.max(1, Math.floor(raw.y + raw.h) - Math.ceil(raw.y)),
   };
+}
+
+// Where one op's rect actually lands in output-image pixel space, snapped
+// OUTWARD (a box whose edge lands at x=30.8 must own all of column 30, or
+// a sub-pixel strip of what it covered survives export) and clipped to
+// the canvas bounds. Returns null if the op is entirely outside the
+// output (a crop can push a box fully off-frame): nothing gets drawn
+// there, so nothing should be checked there either, the same rule bake()
+// itself already follows when it skips these ops.
+export function bakedOpRect(op, out, canvasWidth, canvasHeight) {
+  const r = {
+    x: Math.floor(op.rect.x - out.x),
+    y: Math.floor(op.rect.y - out.y),
+    w: Math.ceil(op.rect.x - out.x + op.rect.w) - Math.floor(op.rect.x - out.x),
+    h: Math.ceil(op.rect.y - out.y + op.rect.h) - Math.floor(op.rect.y - out.y),
+  };
+  if (r.x + r.w <= 0 || r.y + r.h <= 0 || r.x >= canvasWidth || r.y >= canvasHeight) return null;
+  return {
+    x: Math.max(0, r.x),
+    y: Math.max(0, r.y),
+    w: Math.min(canvasWidth, r.x + r.w) - Math.max(0, r.x),
+    h: Math.min(canvasHeight, r.y + r.h) - Math.max(0, r.y),
+  };
+}
+
+// The finished output: cropped frame, ops burned in, in image resolution.
+export function bake(bitmap, editor) {
+  const out = cropOutRect(editor);
   const canvas = makeCanvas(out.w, out.h);
   const ctx = canvas.getContext("2d");
   ctx.drawImage(bitmap, -out.x, -out.y);
   for (const op of paintOps(editor)) {
-    // Covers snap OUTWARD: a box whose edge lands at x=30.8 must own all of
-    // column 30, or a sub-pixel strip of what it covered survives export.
-    const r = {
-      x: Math.floor(op.rect.x - out.x),
-      y: Math.floor(op.rect.y - out.y),
-      w: Math.ceil(op.rect.x - out.x + op.rect.w) - Math.floor(op.rect.x - out.x),
-      h: Math.ceil(op.rect.y - out.y + op.rect.h) - Math.floor(op.rect.y - out.y),
-    };
-    if (r.x + r.w <= 0 || r.y + r.h <= 0 || r.x >= canvas.width || r.y >= canvas.height) continue;
+    const r = bakedOpRect(op, out, canvas.width, canvas.height);
+    if (!r) continue;
     if (op.type === "ink") {
       ctx.fillStyle = INK;
       ctx.fillRect(r.x, r.y, r.w, r.h);
     } else if (op.type === "pixelate") {
-      const clipped = {
-        x: Math.max(0, r.x),
-        y: Math.max(0, r.y),
-        w: Math.min(canvas.width, r.x + r.w) - Math.max(0, r.x),
-        h: Math.min(canvas.height, r.y + r.h) - Math.max(0, r.y),
-      };
-      if (clipped.w > 0 && clipped.h > 0) {
-        pixelateRegion(ctx, canvas, clipped, pixelCell(op.rect));
-      }
+      if (r.w > 0 && r.h > 0) pixelateRegion(ctx, canvas, r, pixelCell(op.rect));
     }
   }
   return canvas;

@@ -13,6 +13,7 @@ const PRECACHE = [
   "/js/editor.js",
   "/js/canvasview.js",
   "/js/render.js",
+  "/js/detect.js",
   "/js/i18n.js",
   "/js/strings-es.js",
   "/vendor/pdfjs/pdf.mjs",

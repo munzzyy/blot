@@ -78,7 +78,17 @@ export function createCanvasView(host) {
     const d = dpr();
     ctx.setTransform(view.scale * d, 0, 0, view.scale * d, view.tx * d, view.ty * d);
     ctx.imageSmoothingEnabled = view.scale < 1;
+    // Gives the page a physical presence against the checkered background
+    // instead of looking like a texture painted onto it. View-canvas only:
+    // shadowBlur/shadowOffset are not affected by the transform above, so
+    // this stays a constant screen-pixel look at any zoom, and bake() never
+    // touches this canvas, so none of it can reach the exported file.
+    ctx.save();
+    ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 3;
     ctx.drawImage(bmp, 0, 0);
+    ctx.restore();
 
     const editor = host.getEditor();
     const mosaic = host.getMosaic();
