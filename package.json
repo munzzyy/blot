@@ -1,6 +1,6 @@
 {
   "name": "blot",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A document redactor that destroys what it covers. Rasterize, ink, re-check: no text layer survives.",
   "type": "module",
   "private": true,

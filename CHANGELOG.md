@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0
+
+Find what should be covered.
+
+- A text-layer suggestion engine: free search finds every match, a pattern
+  sweep on open flags SSN, phone, email, and account shapes. Every hit is
+  a suggestion a person accepts; nothing is inked by itself, and the copy
+  says plainly this finds patterns, not everything.
+- Repeat a box across pages for headers, footers, and stamps. Pixelate and
+  crop tools ship, with the honest warning that pixels on text are weaker
+  than ink.
+- The proof got teeth: a coverage check reopens the finished PDF and
+  probes inside every ink box, blocking export if a single spot leaked. A
+  copyable proof receipt hashes the exact exported bytes.
+
 ## 0.2.0
 
 The iOS round, and the missing codecs.
