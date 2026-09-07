@@ -33,9 +33,9 @@ the cost of certain.
 ## Get it
 
 Android: install [blot.apk](https://github.com/munzzyy/blot/releases/latest/download/blot.apk)
-(the link always points at the current release, so Obtainium can track
-it). Web: serve `app/` from any static host; no build step, no server
-side.
+on Android 10 or newer; the link always points at the current release,
+so Obtainium can track it. On the web it is a static page: serve `app/`
+from anything, no build step, no server side.
 
 ## Check the claims
 
@@ -45,16 +45,30 @@ pdftotext. `npm run e2e` goes end to end: a real PDF with a planted
 secret goes in, ink goes over it, and the output is checked outside the
 app three ways: pdftotext extracts nothing, the secret string exists
 nowhere in the raw output bytes, and the re-rendered page is probed to
-confirm the ink is really there. The Android APK requests no permissions.
+confirm the ink is really there. The APK requests no Android permissions,
+not even INTERNET; its one manifest entry is androidx's self-scoped
+not-exported marker, which grants nothing.
 
-One dependency, on purpose: Mozilla's PDF.js reads the input, vendored at
-a pinned version whose checksum is verified against the npm registry.
-Provenance and re-verification steps: `app/vendor/pdfjs/PROVENANCE.md`.
-Everything else, including the PDF writer, is dependency-free.
+The web app has one dependency, on purpose: Mozilla's PDF.js reads the
+input, vendored at a pinned version whose checksum is verified against
+the npm registry. Provenance and re-verification steps:
+`app/vendor/pdfjs/PROVENANCE.md`. Everything else in the web app,
+including the PDF writer, is dependency-free (the Android wrapper carries
+the standard androidx runtime, like any modern app).
 
 ## Run it
 
-Web: serve `app/` from any static host, or `node test/serve_local.mjs`
-locally. Android: `cd android && ./gradlew assembleRelease`.
+For development: `node test/serve_local.mjs` serves the web app, and
+`cd android && ./gradlew assembleDebug` builds an installable debug APK
+(release signing goes through `tools/release-android.sh`).
 
-MIT (PDF.js is Apache-2.0).
+## Bugs, holes, contributions
+
+Getting text, form data, or metadata out of a Blot output is the bug
+that matters; [SECURITY.md](SECURITY.md) has the private route for that.
+Everything else: issues and pull requests are open and welcome. Releases
+list the APK's sha256 and signing certificate digest.
+
+## License
+
+MIT. The vendored PDF.js is Apache-2.0.
