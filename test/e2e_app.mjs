@@ -103,18 +103,22 @@ async function main() {
       return a && b;
     }, "server and devtools up");
 
-    // Fixture files on disk for the real file-input path.
-    const textPdf = path.join(work, "dispute.pdf");
+    // Fixture files on disk for the real file-input path, under the repo
+    // tree: CI runners' chromium cannot always read another process's
+    // temp directory.
+    const fixDir = path.join(ROOT, "test", "fixtures");
+    mkdirSync(fixDir, { recursive: true });
+    const textPdf = path.join(fixDir, "dispute.pdf");
     writeFileSync(textPdf, makeTextPdf(["Rental dispute summary", SECRET, "The unit was inspected."]));
     check(
       "negative control: poppler extracts the secret from the INPUT",
       execFileSync("pdftotext", [textPdf, "-"], { encoding: "utf8" }).includes(SECRET),
     );
-    const formPdf = path.join(work, "form.pdf");
+    const formPdf = path.join(fixDir, "form.pdf");
     writeFileSync(formPdf, makeFormPdf());
-    const sigPdf = path.join(work, "signed.pdf");
+    const sigPdf = path.join(fixDir, "signed.pdf");
     writeFileSync(sigPdf, makeSigPdf());
-    const lockedPdf = path.join(work, "locked.pdf");
+    const lockedPdf = path.join(fixDir, "locked.pdf");
     writeFileSync(lockedPdf, makeEncryptedish());
 
     const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json/new?about:blank`, { method: "PUT" });
