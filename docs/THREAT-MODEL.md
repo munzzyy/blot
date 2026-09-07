@@ -75,3 +75,12 @@ Mozilla's PDF.js to render the input faithfully, pinned, checksummed, and
 run with eval disabled under a CSP that has no unsafe-eval and no network
 origins. Blot's own writer and editor, a few hundred readable lines. And
 your own eyes on the pages before you press export.
+
+This whole page is what you're trusting, whichever shell it runs in: the
+Android app, the iOS wrapper, or a plain browser tab. On Android the
+network guarantee above is enforced by the OS itself, because the
+manifest requests no `INTERNET` permission. iOS has no permission that
+takes networking away from an app, so on the iOS wrapper the guarantee
+rests one layer higher up: no networking code in the wrapper, plus this
+same CSP. Full accounting of what else differs on iOS, including what has
+and has not been verified on real hardware: `docs/IOS.md`.

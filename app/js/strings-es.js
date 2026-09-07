@@ -9,20 +9,23 @@ export const es = {
   "Choose a PDF": "Elige un PDF",
   "or drop one here": "o suelta uno aquí",
   "or share a PDF to Blot from any app": "o comparte un PDF a Blot desde cualquier app",
+  "or open one from Files": "o abre uno desde Archivos",
   "Everything happens on this device. Nothing is uploaded, ever.": "Todo ocurre en este dispositivo. Nunca se sube nada.",
-  "Why rasterize": "Por qué rasterizar",
+  "Why the output is a picture, not a document": "Por qué el resultado es una imagen, no un documento",
   "A PDF is not what it looks like: under the visible page there can be a text layer, form data, comments, attachments, and earlier versions of the document. Tools that draw rectangles over that stack keep the stack. Blot renders each page to plain pixels and builds a brand new PDF containing only those pixels, so there is no stack left to leak. The cost is honest too: the output is a picture of a document, not an editable one.":
     "Un PDF no es lo que aparenta: bajo la página visible puede haber una capa de texto, datos de formularios, comentarios, adjuntos y versiones anteriores del documento. Las herramientas que dibujan rectángulos sobre esa pila conservan la pila. Blot renderiza cada página a píxeles y construye un PDF nuevo que contiene solo esos píxeles, así que no queda pila que filtrar. El coste también es honesto: el resultado es una imagen de un documento, no uno editable.",
   "What it refuses, on purpose": "Lo que rechaza, a propósito",
   "Password-protected files. Unlock them first; guessing at partial decryption is how tools mishandle documents.":
     "Archivos con contraseña. Desbloquéalos primero; adivinar descifrados parciales es como las herramientas estropean documentos.",
-  "Forms with filled fields and XFA documents. Their content lives outside the page stream, where rendering can silently miss it. Print the form to a fresh PDF first, then bring that here.":
-    "Formularios con campos rellenos y documentos XFA. Su contenido vive fuera del flujo de página, donde el renderizado puede perderlo en silencio. Imprime el formulario a un PDF nuevo primero y trae ese.",
+  "Forms with filled-in fields, and XFA documents (a dynamic form format some government and legal PDFs use). Their content lives outside the page stream, where rendering can silently miss it. Print the form to a fresh PDF first, then bring that here.":
+    "Formularios con campos rellenados, y documentos XFA (un formato de formulario dinámico que usan algunos PDF de trámites y gobierno). Su contenido vive fuera del flujo de página, donde el renderizado puede perderlo en silencio. Imprime el formulario a un PDF nuevo primero y trae ese.",
   "Digitally signed documents. Flattening destroys the signature, and a redactor should not quietly do that to the one thing the file was for.":
     "Documentos firmados digitalmente. Aplanar destruye la firma, y un redactor no debería hacerle eso en silencio a lo único para lo que existía el archivo.",
   "The Android app cannot phone home": "La app de Android no puede llamar a casa",
   "Blot for Android requests no permissions at all. Your documents cannot leave the device through this app, and the manifest proves it.":
     "Blot para Android no pide ningún permiso. Tus documentos no pueden salir del dispositivo a través de esta app, y el manifiesto lo demuestra.",
+  "It is not in the Play Store, so Android will warn you that it is blocking an install from outside the store. That warning exists for apps that ask for permissions and misuse them; Blot asks for none. Settings will offer a one-time \"install anyway\"; that is the only extra step.":
+    "No está en la Play Store, así que Android avisará que bloquea una instalación fuera de la tienda. Ese aviso existe para apps que piden permisos y los usan mal; Blot no pide ninguno. Ajustes ofrecerá un \"instalar de todos modos\" único; ese es el único paso extra.",
   "Download the APK": "Descargar el APK",
   "One dependency, accounted for": "Una dependencia, justificada",
   "Blot reads PDFs with Mozilla's PDF.js, the same engine Firefox uses, vendored at a pinned version whose checksum is verified against the public registry and documented in the repo. Everything else is dependency-free.":
@@ -36,6 +39,8 @@ export const es = {
   "This PDF is a filled form": "Este PDF es un formulario relleno",
   "Form answers live outside the page image, where flattening can silently lose or miss them. Print the form to a new PDF from your viewer, check the result shows everything, then redact that file here.":
     "Las respuestas del formulario viven fuera de la imagen de página, donde el aplanado puede perderlas en silencio. Imprime el formulario a un PDF nuevo desde tu visor, comprueba que el resultado muestra todo, y redacta ese archivo aquí.",
+  "On a phone: open it in your PDF viewer, use Share or the menu, choose Print, then pinch open the print preview and share or save THAT as a PDF.":
+    "En el móvil: ábrelo en tu visor de PDF, usa Compartir o el menú, elige Imprimir, y luego abre con dos dedos la vista previa de impresión y comparte o guarda ESO como PDF.",
   "This PDF is digitally signed": "Este PDF está firmado digitalmente",
   "Flattening would destroy the signature, and a redactor should not quietly break the one thing this file was issued for. If you accept losing the signature, print to PDF first and bring that.":
     "Aplanar destruiría la firma, y un redactor no debería romper en silencio lo único para lo que se emitió este archivo. Si aceptas perder la firma, imprime a PDF primero y trae ese.",
@@ -43,8 +48,8 @@ export const es = {
   "XFA content renders unreliably outside Adobe tools, and redacting what you cannot fully see is how leaks happen. Print it to a regular PDF first.":
     "El contenido XFA se renderiza de forma poco fiable fuera de las herramientas de Adobe, y redactar lo que no puedes ver del todo es como ocurren las filtraciones. Imprímelo a un PDF normal primero.",
   "This PDF is too long": "Este PDF es demasiado largo",
-  "Blot handles up to {max} pages at a time, because every page is held in memory as an image. Split the document and redact the parts.":
-    "Blot maneja hasta {max} páginas a la vez, porque cada página se mantiene en memoria como imagen. Divide el documento y redacta las partes.",
+  "Blot handles up to {max} pages at a time, because every page is held in memory as an image. Split the document and redact the parts: most PDF viewers, including the Files app on a phone, can export a page range as a new PDF.":
+    "Blot maneja hasta {max} páginas a la vez, porque cada página se mantiene en memoria como imagen. Divide el documento y redacta las partes: la mayoría de los visores de PDF, incluida la app Archivos del móvil, pueden exportar un rango de páginas como un PDF nuevo.",
   "This file could not be read as a PDF": "Este archivo no se pudo leer como PDF",
   "It may be damaged, or not really a PDF. Nothing was processed.": "Puede estar dañado, o no ser realmente un PDF. No se procesó nada.",
   "Choose another file": "Elegir otro archivo",
@@ -57,7 +62,7 @@ export const es = {
   "Page canvas. Press B to add an ink box, arrow keys to move it, Shift and arrows to resize, Delete to remove, PageUp and PageDown to change pages.":
     "Lienzo de página. Pulsa B para añadir un recuadro de tinta, flechas para moverlo, Shift y flechas para cambiar su tamaño, Suprimir para quitarlo, RePág y AvPág para cambiar de página.",
   "Redaction tools": "Herramientas de redacción",
-  "Drag to ink. Ink is permanent in the export.": "Arrastra para entintar. La tinta es permanente en la exportación.",
+  "Drag to ink (draw over what to hide). Ink is permanent in the export.": "Arrastra para entintar (dibuja sobre lo que quieras ocultar). La tinta es permanente en la exportación.",
   "Remove box": "Quitar recuadro",
   "Flatten & export": "Aplanar y exportar",
   "Flattening…": "Aplanando…",
@@ -70,6 +75,9 @@ export const es = {
   "{total} pages rendered. Drag or press B to ink.": "{total} páginas renderizadas. Arrastra o pulsa B para entintar.",
   "{count} box(es)": "{count} recuadro(s)",
   "Your ink is not exported yet. Tap close again to discard it.": "Tu tinta aún no se exporta. Toca cerrar otra vez para descartarla.",
+  "Press again to discard your ink": "Toca otra vez para descartar tu tinta",
+  "Box removed. {count} on this page.": "Recuadro quitado. {count} en esta página.",
+  "Box restored. {count} on this page.": "Recuadro restaurado. {count} en esta página.",
 
   "Checked clean": "Verificado limpio",
   "Something survived": "Algo sobrevivió",
@@ -77,6 +85,9 @@ export const es = {
     "El archivo final se volvió a abrir y verificar: sin texto extraíble, sin anotaciones, sin campos de formulario. Solo píxeles.",
   "The finished file was re-checked and something unexpected is in it. Do not share it; please report this.":
     "El archivo final se reverificó y contiene algo inesperado. No lo compartas; por favor repórtalo.",
+  "Report it:": "Repórtalo:",
+  "or": "o",
+  "open a security report on GitHub": "abre un reporte de seguridad en GitHub",
   "The finished file": "El archivo final",
   "{count} page(s), images only": "{count} página(s), solo imágenes",
   "Extractable text items: {count}": "Elementos de texto extraíbles: {count}",
@@ -92,6 +103,9 @@ export const es = {
   "Blot opens one document at a time; the first shared file was opened.":
     "Blot abre un documento a la vez; se abrió el primer archivo compartido.",
   "Sharing is not available here, so it downloaded instead.": "Compartir no está disponible aquí, así que se descargó en su lugar.",
+  "Choose where to save it.": "Elige dónde guardarlo.",
+  "This build of Blot cannot save or share files yet. Update the app and try again.":
+    "Esta versión de Blot todavía no puede guardar ni compartir archivos. Actualiza la app e inténtalo de nuevo.",
 
   "Ink": "Tinta",
   "Pixelate": "Pixelar",

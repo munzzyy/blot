@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Deliberately NO uses-permission entries. No INTERNET means the OS
-         refuses every connection; photos come through the system camera
-         app, which needs no permission from us. Verify it in this file. -->
+         refuses every connection Blot could try to open. Verify it in
+         this file. -->
 
     <application
         android:label="@string/app_name"

@@ -19,6 +19,7 @@ const MIME = {
   ".webp": "image/webp",
   ".webmanifest": "application/manifest+json",
   ".json": "application/json",
+  ".wasm": "application/wasm",
 };
 
 createServer(async (req, res) => {
@@ -45,5 +46,5 @@ createServer(async (req, res) => {
     res.writeHead(404).end("not found");
   }
 }).listen(PORT, "127.0.0.1", () => {
-  console.log(`sepia dev server on http://127.0.0.1:${PORT}`);
+  console.log(`blot dev server on http://127.0.0.1:${PORT}`);
 });
