@@ -131,8 +131,12 @@ class MainActivity : ComponentActivity() {
             Intent.ACTION_VIEW -> listOfNotNull(intent.data)
             else -> emptyList()
         }
-        // content:// only, and never Blot's own share-out provider paths.
-        val safe = uris.filter { it.scheme == "content" }
+        // One document at a time: a new share-in supersedes anything
+        // still queued, so a stale leftover can never open later instead
+        // of the file the user just sent. content:// only, never our own
+        // provider.
+        shared.clear()
+        val safe = uris.filter { it.scheme == "content" && it.authority != "io.github.munzzyy.blot.files" }
         if (safe.isEmpty()) return false
         for (uri in safe.take(50)) addShared(uri)
         return true

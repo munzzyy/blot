@@ -78,6 +78,12 @@ const REFUSALS = {
 // ------------------------------------------------------------------ open
 
 async function openBytes(bytes, name = "document.pdf") {
+  // Whatever was open before is gone the moment a new open starts; a
+  // refusal or failed render must not leave the old document alive in
+  // memory behind the start screen.
+  session = null;
+  view.clearSelection();
+  view.render();
   const res = await loadPdf(bytes);
   if (res.refusal) {
     const [title, body] = (REFUSALS[res.refusal] || REFUSALS.unreadable)();
@@ -171,8 +177,12 @@ async function runExport() {
     // PDF.js transfers the buffer it is given to its worker, detaching it;
     // the verifier gets a copy so the export survives being checked.
     const verify = await verifyOutput(new Uint8Array(pdf));
-    session.exported = { bytes: pdf, verify };
+    // A failed verification means nothing leaves: no exported bytes, no
+    // live Share/Save under a screen that says do not share.
+    session.exported = verify.ok ? { bytes: pdf, verify } : null;
     renderProof(verify, pdf.length);
+    $("btn-share").hidden = !verify.ok;
+    $("btn-save").hidden = !verify.ok;
     show("done");
   } catch (err) {
     __blotErrors.push(`export: ${err}`);
@@ -401,6 +411,18 @@ async function boot() {
 
   wireEvents();
   show("start");
+
+  // Installed-PWA "open with Blot" from a file manager.
+  globalThis.launchQueue?.setConsumer?.(async (params) => {
+    const handle = (params.files || [])[0];
+    if (!handle) return;
+    try {
+      const file = await handle.getFile();
+      await openBytes(new Uint8Array(await file.arrayBuffer()), file.name);
+    } catch (err) {
+      __blotErrors.push(`launch: ${err}`);
+    }
+  });
 
   // Wrapper share-in: one-shot tokens over the asset origin.
   globalThis.__blotShared = async (payload) => {

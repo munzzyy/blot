@@ -31,7 +31,9 @@ async function scanForFields(doc) {
 
 // -> { doc, task, pages } or { refusal: "encrypted"|"xfa"|"signed"|"forms"|"toolong"|"unreadable" }
 export async function loadPdf(bytes) {
-  const task = pdfjs.getDocument({ data: bytes, isEvalSupported: false });
+  // enableXfa makes isPureXfa trustworthy; without it the XFA gate is
+  // dead code and dynamic forms sail through half-rendered.
+  const task = pdfjs.getDocument({ data: bytes, isEvalSupported: false, enableXfa: true });
   let doc;
   try {
     doc = await task.promise;
