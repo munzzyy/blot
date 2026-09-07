@@ -1,5 +1,7 @@
 # Blot
 
+[![release](https://img.shields.io/github/v/release/munzzyy/blot)](https://github.com/munzzyy/blot/releases/latest) [![ci](https://github.com/munzzyy/blot/actions/workflows/ci.yml/badge.svg)](https://github.com/munzzyy/blot/actions/workflows/ci.yml) [![license: MIT](https://img.shields.io/badge/license-MIT-5b4a9e)](LICENSE)
+
 Redaction that destroys what it covers.
 
 The redaction failures that make the news share one anatomy: a black
@@ -22,6 +24,18 @@ digitally signed documents each get told why and what to do instead. The
 trade is stated plainly too: the output is a picture of a document. It
 prints and reads fine; it is not editable and not searchable. That is
 the cost of certain.
+
+<p align="center">
+  <img src="docs/shots/editor.png" width="48%" alt="A rendered PDF page in the editor, ready for ink">
+  <img src="docs/shots/proof.png" width="48%" alt="The proof screen: checked clean, zero extractable text, zero annotations, zero form fields">
+</p>
+
+## Get it
+
+Android: install [blot.apk](https://github.com/munzzyy/blot/releases/latest/download/blot.apk)
+(the link always points at the current release, so Obtainium can track
+it). Web: serve `app/` from any static host; no build step, no server
+side.
 
 ## Check the claims
 
