@@ -1,0 +1,1 @@
+Redaccion que destruye lo que cubre. Aplana a pixeles, tinta, y reverifica: cero texto extraible.

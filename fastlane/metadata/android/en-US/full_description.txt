@@ -1,0 +1,20 @@
+The famous redaction failures all worked the same way: a black box drawn
+over text that was still there underneath.
+
+Blot cannot make that mistake, because it does not keep the text:
+
+* Every page becomes a picture; your ink becomes part of the picture.
+* A brand new PDF is built containing only those pictures. The writer has
+  no code paths for text, forms, annotations, or metadata, so nothing
+  hidden in the input can ride along.
+* The finished file is reopened and re-checked in front of you: zero
+  extractable text, zero annotations, zero form fields.
+* Documents that cannot be flattened honestly (password-protected, filled
+  forms, XFA, signed) are refused with an explanation and advice.
+
+The output is a picture of a document: prints and reads fine, not
+editable or searchable. That is the price of certain.
+
+This app requests no permissions and the OS refuses every network
+connection. One pinned, checksum-verified dependency (Mozilla's PDF.js)
+reads the input; everything else is dependency-free. MIT licensed.

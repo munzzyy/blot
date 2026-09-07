@@ -1,0 +1,1 @@
+First release: flatten-and-verify redaction, honest refusal gates, proof screen, EN+ES, zero permissions.
