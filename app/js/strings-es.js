@@ -66,8 +66,8 @@ export const es = {
   "Remove box": "Quitar recuadro",
   "Flatten & export": "Aplanar y exportar",
   "Flattening…": "Aplanando…",
-  "B adds a box. Tab cycles boxes. Arrows move, Shift with arrows resizes, Delete removes, PageUp and PageDown switch pages, + and - zoom, 0 fits.":
-    "B añade un recuadro. Tab recorre los recuadros. Las flechas mueven, Shift con flechas cambia el tamaño, Suprimir quita, RePág y AvPág cambian de página, + y - hacen zoom, 0 ajusta.",
+  "B adds a box. Tab cycles boxes and suggestions, Enter accepts a focused suggestion. Arrows move, Shift with arrows resizes, Delete removes, PageUp and PageDown switch pages, + and - zoom, 0 fits.":
+    "B añade un recuadro. Tab recorre los recuadros y sugerencias, Enter acepta una sugerencia enfocada. Las flechas mueven, Shift con flechas cambia el tamaño, Suprimir quita, RePág y AvPág cambian de página, + y - hacen zoom, 0 ajusta.",
   "Page {n} of {total}": "Página {n} de {total}",
   "Rendering page {n} of {total}": "Renderizando página {n} de {total}",
   "Rendering failed partway; this document may be too large for this device.":
@@ -121,4 +121,51 @@ export const es = {
   "{tool} box added": "Recuadro de {tool} añadido",
   "{tool} box {n} of {total}: {where}": "Recuadro de {tool} {n} de {total}: {where}",
   "{x}% across, {y}% down, covering {w}% by {h}%": "{x}% a lo ancho, {y}% hacia abajo, cubriendo {w}% por {h}%",
+
+  "Tool": "Herramienta",
+  "Crop": "Recortar",
+  "Apply crop": "Aplicar recorte",
+  "Cancel": "Cancelar",
+  "Drag, or press B, to draft a crop area.": "Arrastra, o pulsa B, para trazar un área de recorte.",
+  "Drag on the page, or press B, to draft a crop area. Everything outside it is discarded on export.":
+    "Arrastra sobre la página, o pulsa B, para trazar un área de recorte. Todo lo que quede fuera se descarta al exportar.",
+  "Draft a crop area first: drag on the page, or press B.": "Primero traza un área de recorte: arrastra sobre la página, o pulsa B.",
+  "That crop area is too small.": "Esa área de recorte es demasiado pequeña.",
+  "Crop applied. Everything outside it will be discarded on export.": "Recorte aplicado. Todo lo que quede fuera se descartará al exportar.",
+  "Pixelation blurs blocks of pixels together. It is weaker than ink on text: small type or a short string can sometimes be reconstructed from a heavily pixelated block. Use ink for anything you need to be sure is gone.":
+    "Pixelar difumina bloques de píxeles entre sí. Es más débil que la tinta sobre texto: un tipo pequeño o una cadena corta a veces se puede reconstruir a partir de un bloque muy pixelado. Usa tinta para lo que necesites que desaparezca de verdad.",
+
+  "Find text to cover": "Buscar texto para cubrir",
+  "Find text to suggest covering it": "Busca texto para sugerir cubrirlo",
+  "Search this document's text": "Buscar en el texto de este documento",
+  "Search": "Buscar",
+  "Clear": "Borrar",
+  "Search cleared.": "Búsqueda borrada.",
+  "No open suggestions.": "No hay sugerencias pendientes.",
+  "{count} suggestion(s) across the document. Tab on the page to review.":
+    "{count} sugerencia(s) en el documento. Usa Tab en la página para revisarlas.",
+  "{count} match(es) for \"{query}\" in this document's text layer.":
+    "{count} coincidencia(s) de \"{query}\" en la capa de texto de este documento.",
+  "Every result comes from this file's own text layer, not what the page looks like. A scanned page with no text layer will not show results here. Suggestions are dashed outlines: nothing is inked until you accept one.":
+    "Cada resultado viene de la propia capa de texto de este archivo, no de cómo se ve la página. Una página escaneada sin capa de texto no mostrará resultados aquí. Las sugerencias son contornos discontinuos: nada se entinta hasta que aceptas una.",
+  "Suggestion covered": "Sugerencia cubierta",
+  "Could not cover that suggestion; it was too small to place.": "No se pudo cubrir esa sugerencia; era demasiado pequeña para colocarla.",
+  "{total} pages rendered. Pattern sweep found {n} possible match(es); Tab to review. Drag or press B to ink.":
+    "{total} páginas renderizadas. El barrido de patrones encontró {n} posible(s) coincidencia(s); usa Tab para revisar. Arrastra o pulsa B para entintar.",
+
+  "Repeat on every page": "Repetir en cada página",
+  "Added to {applied} of {total} pages.": "Añadido a {applied} de {total} páginas.",
+  "Added to {applied} of {total} pages. {clamped} had a different page size and were scaled to fit; check them.":
+    "Añadido a {applied} de {total} páginas. {clamped} tenían un tamaño de página distinto y se escalaron para encajar; revísalas.",
+
+  "Ink coverage: every covered spot re-rendered dark": "Cobertura de tinta: cada punto cubierto se renderizó oscuro al volver a abrirlo",
+  "Ink coverage: a covered spot re-rendered light. Do not share this file.":
+    "Cobertura de tinta: un punto cubierto se renderizó claro al volver a abrirlo. No compartas este archivo.",
+
+  "Verification receipt": "Recibo de verificación",
+  "SHA-256 of the exact file below. Not a signature: it proves these bytes were not changed after this screen, not who made them or that they are safe to send. Save it alongside the file if you want to re-check later.":
+    "SHA-256 del archivo exacto de abajo. No es una firma: demuestra que estos bytes no cambiaron después de esta pantalla, no quién los hizo ni que sean seguros de enviar. Guárdalo junto al archivo si quieres reverificar más tarde.",
+  "Copy hash": "Copiar hash",
+  "Copied.": "Copiado.",
+  "Could not copy. Select and copy the hash by hand.": "No se pudo copiar. Selecciona y copia el hash a mano.",
 };

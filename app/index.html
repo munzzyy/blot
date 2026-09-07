@@ -85,6 +85,7 @@
     <button id="btn-close" class="icon-btn" data-i18n-attr="aria-label" aria-label="Close this document" title="Close">✕</button>
     <span id="page-ind" class="page-ind"></span>
     <div class="top-actions">
+      <button id="btn-find-toggle" class="icon-btn" data-i18n-attr="aria-label" aria-label="Find text to cover" aria-expanded="false" aria-controls="find-bar">⌕</button>
       <button id="btn-prev" class="icon-btn" data-i18n-attr="aria-label" aria-label="Previous page">←</button>
       <button id="btn-next" class="icon-btn" data-i18n-attr="aria-label" aria-label="Next page">→</button>
       <button id="btn-undo" class="icon-btn" data-i18n-attr="aria-label" aria-label="Undo" disabled>↶</button>
@@ -92,19 +93,47 @@
     </div>
   </header>
 
+  <div id="find-bar" class="find-bar" hidden role="search" data-i18n-attr="aria-label" aria-label="Find text to cover">
+    <label class="sr-only" for="find-input" data-i18n>Search this document's text</label>
+    <input id="find-input" type="text" data-i18n-attr="placeholder" placeholder="Find text to suggest covering it">
+    <button id="btn-find-go" class="btn-ghost" data-i18n>Search</button>
+    <button id="btn-find-clear" class="btn-ghost" data-i18n>Clear</button>
+    <p id="find-count" class="find-count" role="status"></p>
+    <p class="find-note" data-i18n>Every result comes from this file's own text layer, not what the page looks like. A scanned page with no text layer will not show results here. Suggestions are dashed outlines: nothing is inked until you accept one.</p>
+  </div>
+
   <div id="canvas-wrap" class="canvas-wrap">
     <canvas id="canvas" tabindex="0" role="application" data-i18n-attr="aria-label" aria-label="Page canvas. Press B to add an ink box, arrow keys to move it, Shift and arrows to resize, Delete to remove, PageUp and PageDown to change pages."></canvas>
     <div id="render-progress" class="render-progress" role="status" hidden><span id="render-progress-text"></span></div>
+    <div id="crop-bar" class="crop-bar" hidden role="group" data-i18n-attr="aria-label" aria-label="Crop">
+      <span data-i18n>Drag, or press B, to draft a crop area.</span>
+      <button id="btn-crop-apply" class="btn-primary" data-i18n>Apply crop</button>
+      <button id="btn-crop-cancel" class="btn-ghost" data-i18n>Cancel</button>
+    </div>
   </div>
+
+  <div class="tools" role="radiogroup" data-i18n-attr="aria-label" aria-label="Tool">
+    <button id="tool-ink" class="tool active" role="radio" aria-checked="true" data-i18n-attr="aria-label" aria-label="Ink">
+      <span class="tool-icon ink-icon" aria-hidden="true"></span><span data-i18n>Ink</span>
+    </button>
+    <button id="tool-pixelate" class="tool" role="radio" aria-checked="false" data-i18n-attr="aria-label" aria-label="Pixelate">
+      <span class="tool-icon px-icon" aria-hidden="true"></span><span data-i18n>Pixelate</span>
+    </button>
+    <button id="tool-crop" class="tool" role="radio" aria-checked="false" data-i18n-attr="aria-label" aria-label="Crop">
+      <span class="tool-icon crop-icon" aria-hidden="true"></span><span data-i18n>Crop</span>
+    </button>
+  </div>
+  <p id="tool-note" class="tool-note" hidden></p>
 
   <div class="toolbar" role="group" data-i18n-attr="aria-label" aria-label="Redaction tools">
     <span class="tool-note-inline" data-i18n>Drag to ink (draw over what to hide). Ink is permanent in the export.</span>
     <button id="btn-del-box" class="btn-ghost del-chip" hidden data-i18n>Remove box</button>
+    <button id="btn-repeat" class="btn-ghost" hidden data-i18n>Repeat on every page</button>
     <span class="toolbar-space"></span>
     <span id="box-count" class="box-count"></span>
     <button id="btn-export" class="btn-primary" data-testid="export" data-i18n>Flatten &amp; export</button>
   </div>
-  <p id="kbd-hint" class="kbd-hint" hidden data-i18n>B adds a box. Tab cycles boxes. Arrows move, Shift with arrows resizes, Delete removes, PageUp and PageDown switch pages, + and - zoom, 0 fits.</p>
+  <p id="kbd-hint" class="kbd-hint" hidden data-i18n>B adds a box. Tab cycles boxes and suggestions, Enter accepts a focused suggestion. Arrows move, Shift with arrows resizes, Delete removes, PageUp and PageDown switch pages, + and - zoom, 0 fits.</p>
 </section>
 
 <!-- ============================================================ proof -->
@@ -120,6 +149,12 @@
     <div class="done-report">
       <h3 data-i18n>The finished file</h3>
       <ul id="done-facts"></ul>
+    </div>
+    <div id="done-receipt" class="done-report" hidden>
+      <h3 data-i18n>Verification receipt</h3>
+      <p class="done-receipt-note" data-i18n>SHA-256 of the exact file below. Not a signature: it proves these bytes were not changed after this screen, not who made them or that they are safe to send. Save it alongside the file if you want to re-check later.</p>
+      <code id="done-hash" class="done-hash" data-testid="done-hash"></code>
+      <button id="btn-copy-hash" class="btn-ghost" data-i18n>Copy hash</button>
     </div>
     <div class="done-actions">
       <button id="btn-share" class="btn-primary" data-testid="share" data-i18n>Share</button>
