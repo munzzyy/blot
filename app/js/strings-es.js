@@ -152,6 +152,8 @@ export const es = {
   "Could not cover that suggestion; it was too small to place.": "No se pudo cubrir esa sugerencia; era demasiado pequeña para colocarla.",
   "{total} pages rendered. Pattern sweep found {n} possible match(es); Tab to review. Drag or press B to ink.":
     "{total} páginas renderizadas. El barrido de patrones encontró {n} posible(s) coincidencia(s); usa Tab para revisar. Arrastra o pulsa B para entintar.",
+  "Page(s) {list}: no text layer, so automatic search cannot check them. They are images; cover anything there by hand.":
+    "Página(s) {list}: sin capa de texto, así que la búsqueda automática no puede revisarlas. Son imágenes; cubre a mano lo que haya ahí.",
 
   "Repeat on every page": "Repetir en cada página",
   "Added to {applied} of {total} pages.": "Añadido a {applied} de {total} páginas.",

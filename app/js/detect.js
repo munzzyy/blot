@@ -70,6 +70,11 @@ export function subRect(rect, start, end, len) {
   return { x: x0, y: rect.y, w: Math.max(1, x1 - x0), h: rect.h };
 }
 
+// Empty or whitespace-only text items: the sweep and search find nothing here no matter what the page shows.
+export function isTextless(items) {
+  return !items || items.every((it) => !(it.str || "").trim());
+}
+
 // Preset patterns for the automatic sweep. Loose on purpose: a redaction
 // tool that suggests too much costs a rejected suggestion; one that
 // suggests too little costs a leak. account is the loosest of the four and
