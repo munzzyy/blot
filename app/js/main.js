@@ -8,7 +8,7 @@ import { bake, encode, makeMosaic, cropOutRect, bakedOpRect } from "./render.js"
 import { createCanvasView } from "./canvasview.js";
 import { setLocale, resolveLocale, translateDom, t, LOCALE_CHOICES } from "./i18n.js";
 import { isWrapper, isIOSScheme, deliverNative } from "./platform.js";
-import { findMatches, sweepPatterns, PATTERN_KEYS } from "./detect.js";
+import { findMatches, sweepPatterns, PATTERN_KEYS, isTextless } from "./detect.js";
 
 const VERSION = "0.3.0";
 
@@ -52,6 +52,7 @@ const app = {
       current: session?.current ?? 0,
       boxes: session ? session.pages.reduce((n, p) => n + paintOps(p.editor).length, 0) : 0,
       suggestions: session ? session.pages.reduce((n, p) => n + p.suggestions.length, 0) : 0,
+      scannedPages: session?.scannedPages ?? [],
       version: VERSION,
       wrapper: isWrapper(),
     };
@@ -143,7 +144,8 @@ async function openBytes(bytes, name = "document.pdf") {
     $("render-progress").hidden = true;
     res.task.destroy().catch(() => {});
   }
-  session = { pages, current: 0, name, exported: null };
+  const scannedPages = pages.map((p, i) => (isTextless(p.textItems) ? i + 1 : null)).filter((n) => n);
+  session = { pages, current: 0, name, exported: null, scannedPages };
   const swept = runPatternSweep();
   setTool("ink");
   $("find-input").value = "";
@@ -151,6 +153,7 @@ async function openBytes(bytes, name = "document.pdf") {
   $("btn-find-toggle").setAttribute("aria-expanded", "false");
   updatePageUi();
   updateFindUi();
+  updateScanNotice();
   view.fit();
   $("canvas").focus({ preventScroll: true });
   announce(
@@ -272,6 +275,17 @@ function updateFindUi() {
     el.textContent = text;
     if (total) bump(el);
   }
+}
+
+// A textless page reads as zero sweep matches either way; this says so.
+function updateScanNotice() {
+  const el = $("scan-notice");
+  if (!el || !session) return;
+  const pages = session.scannedPages;
+  el.hidden = pages.length === 0;
+  el.textContent = pages.length
+    ? t("Page(s) {list}: no text layer, so automatic search cannot check them. They are images; cover anything there by hand.", { list: pages.join(", ") })
+    : "";
 }
 
 function updatePageUi() {

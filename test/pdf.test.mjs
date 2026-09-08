@@ -10,7 +10,7 @@ import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { buildPdf } from "../app/js/pdfwrite.js";
-import { makeTextPdf, makeFormPdf, makeSigPdf, makeEncryptedish } from "./fixtures-pdf.mjs";
+import { makeTextPdf, makeFormPdf, makeSigPdf, makeEncryptedish, makeImageOnlyPdf } from "./fixtures-pdf.mjs";
 
 const SECRET = "SECRET-SSN-123-45-6789";
 
@@ -55,6 +55,22 @@ test("writer output opens in poppler and yields zero text", (t) => {
     assert.equal(text.trim(), "");
     // No metadata either: poppler shows no Producer/Author/Title lines.
     assert.ok(!/Producer:|Author:|Title:.*\S/.test(info.replace(/Title:\s*\n/, "Title:\n")), info);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("scanned-page fixture has an image and no text, independently of pdf.js", (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), "blot-scan-"));
+  try {
+    const file = path.join(dir, "scanned.pdf");
+    writeFileSync(file, makeImageOnlyPdf());
+    const info = execFileSync("pdfinfo", [file], { encoding: "utf8" });
+    assert.match(info, /Pages:\s+1/);
+    const text = execFileSync("pdftotext", [file, "-"], { encoding: "utf8" });
+    assert.equal(text.trim(), "");
+    const images = execFileSync("pdfimages", ["-list", file], { encoding: "utf8" });
+    assert.match(images, /^\s*1\s+0\s+image\b/m, images);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

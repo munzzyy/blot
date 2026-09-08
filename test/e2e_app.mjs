@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
-import { makeTextPdf, makeFormPdf, makeBlankFormPdf, makeSigPdf, makeEncryptedish, makeTwoPageTextPdf } from "./fixtures-pdf.mjs";
+import { makeTextPdf, makeFormPdf, makeBlankFormPdf, makeSigPdf, makeEncryptedish, makeTwoPageTextPdf, makeImageOnlyPdf } from "./fixtures-pdf.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const HTTP_PORT = 8961;
@@ -243,6 +243,36 @@ async function main() {
     const dark = (p) => p[0] < 60 && p[1] < 60 && p[2] < 60;
     check("pixels: inked area is dark in the rendered output", dark(probe.inked), JSON.stringify(probe));
     check("pixels: untouched area stays light", !dark(probe.corner), JSON.stringify(probe.corner));
+
+    // ---------------------------------------------- scanned-page notice
+    const scannedPdf = path.join(fixDir, "scanned.pdf");
+    writeFileSync(scannedPdf, makeImageOnlyPdf());
+    check(
+      "negative control: poppler extracts ZERO text from the scanned fixture (it really has no text layer)",
+      execFileSync("pdftotext", [scannedPdf, "-"], { encoding: "utf8" }).trim() === "",
+    );
+    await c.evalJs("document.getElementById('btn-again').click(); 'ok'");
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), "back to start for scanned-page notice run");
+    await pickFile(c, textPdf);
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'edit' && __blotApi.state.pages === 1"), "text pdf reopened for notice check");
+    check("scanned-page notice stays hidden on a real text page", (await c.evalJs("document.getElementById('scan-notice').hidden")) === true);
+    check("no scanned pages reported for a real text page", (await c.evalJs("__blotApi.state.scannedPages.length")) === 0);
+    await c.evalJs("document.getElementById('btn-close').click(); 'ok'");
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), "back to start after text page notice check");
+    await pickFile(c, scannedPdf);
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'edit' && __blotApi.state.pages === 1"), "scanned pdf opened");
+    const notice = await c.evalJs(
+      `(() => { const el = document.getElementById("scan-notice"); return { hidden: el.hidden, text: el.textContent }; })()`,
+    );
+    check("scanned-page notice appears for an image-only page", notice.hidden === false, JSON.stringify(notice));
+    check("scanned-page notice names the page number", notice.text.includes("1"), notice.text);
+    check(
+      "automatic pattern sweep found nothing on the scanned page (it cannot read it)",
+      (await c.evalJs("__blotApi.state.suggestions")) === 0,
+    );
+    check("scannedPages state names page 1", JSON.stringify(await c.evalJs("__blotApi.state.scannedPages")) === "[1]");
+    await c.evalJs("document.getElementById('btn-close').click(); 'ok'");
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), "back to start after scanned-page notice run");
 
     // ------------------------------------------------- find-and-cover e2e
     // Real search over the real text layer, accept a real suggestion,

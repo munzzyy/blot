@@ -3,7 +3,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { combine, pageTransform, itemRect, subRect, findMatches, sweepPatterns, PATTERNS } from "../app/js/detect.js";
+import { combine, pageTransform, itemRect, subRect, findMatches, sweepPatterns, PATTERNS, isTextless } from "../app/js/detect.js";
 
 const SCALE = 150 / 72;
 const PAGE = { scale: SCALE, heightPt: 792 };
@@ -117,4 +117,16 @@ test("sweepPatterns can be scoped to a subset of keys", () => {
   const hits = sweepPatterns(items, PAGE, ["email"]);
   assert.ok(hits.every((h) => h.pattern === "email"));
   assert.ok(hits.length >= 1);
+});
+
+test("isTextless is true for a scanned page's empty item array", () => {
+  assert.equal(isTextless([]), true);
+});
+
+test("isTextless is true when every item is whitespace only", () => {
+  assert.equal(isTextless([{ str: "  " }, { str: "\n\t" }, { str: "" }]), true);
+});
+
+test("isTextless is false as soon as one item carries real text", () => {
+  assert.equal(isTextless([{ str: "   " }, item("hello", 0, 0)]), false);
 });

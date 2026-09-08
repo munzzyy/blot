@@ -67,6 +67,29 @@ export function makeTwoPageTextPdf(page1Lines, page2Lines) {
   ]);
 }
 
+// A scanned page: an image XObject, no BT/Tj text content anywhere.
+export function makeImageOnlyPdf() {
+  const pixel = String.fromCharCode(0x40); // stays under 128 so assemble()'s TextEncoder pass leaves it unchanged
+  const content = "q 400 0 0 400 100 100 cm /Im1 Do Q";
+  return assemble([
+    { id: 1, src: "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" },
+    { id: 2, src: "2 0 obj\n<< /Type /Pages /Kids [ 3 0 R ] /Count 1 >>\nendobj\n" },
+    {
+      id: 3,
+      src:
+        "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] " +
+        "/Resources << /XObject << /Im1 6 0 R >> >> /Contents 5 0 R >>\nendobj\n",
+    },
+    { id: 5, src: `5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n` },
+    {
+      id: 6,
+      src:
+        "6 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 " +
+        `/ColorSpace /DeviceGray /BitsPerComponent 8 /Length 1 >>\nstream\n${pixel}\nendstream\nendobj\n`,
+    },
+  ]);
+}
+
 function formPdf(fieldExtra) {
   return assemble([
     { id: 1, src: "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [ 6 0 R ] >> >>\nendobj\n" },
