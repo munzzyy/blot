@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0
+
+The blind spot in the sweep.
+
+- Free search and the pattern sweep only ever look at a page's text
+  layer. A scanned page has none, so it returned zero matches and read
+  exactly like a clean page, not a page nobody checked. The editor now
+  names any textless pages on open and says plainly that automatic
+  search cannot read them; cover anything on those pages by hand.
+
 ## 0.3.0
 
 Find what should be covered.
