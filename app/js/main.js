@@ -10,7 +10,7 @@ import { setLocale, resolveLocale, translateDom, t, LOCALE_CHOICES } from "./i18
 import { isWrapper, isIOSScheme, deliverNative } from "./platform.js";
 import { findMatches, sweepPatterns, PATTERN_KEYS, isTextless } from "./detect.js";
 
-const VERSION = "0.3.0";
+const VERSION = "0.4.0";
 
 globalThis.__blotErrors = [];
 window.addEventListener("error", (ev) => __blotErrors.push(String(ev.message)));
