@@ -1,16 +1,20 @@
 package io.github.munzzyy.blot
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.WindowManager
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.webkit.WebViewAssetLoader
 import java.io.File
 import java.security.SecureRandom
@@ -34,6 +38,18 @@ class MainActivity : ComponentActivity() {
     // (token, uri) pairs for shared-in and captured files, RAM only, each
     // served exactly once.
     private val shared = mutableListOf<Pair<String, Uri>>()
+
+    // The pending callback for an in-page <input type="file">, deliverable
+    // exactly once: a second onShowFileChooser before this fires cancels it.
+    private var filePathCallback: ValueCallback<Array<Uri>>? = null
+
+    private val chooseFile = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val callback = filePathCallback
+        filePathCallback = null
+        callback?.onReceiveValue(
+            WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data),
+        )
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,6 +94,24 @@ class MainActivity : ComponentActivity() {
                 if (request.url.host == ASSET_HOST) return false
                 if (request.isForMainFrame && request.hasGesture() && request.url.scheme == "https") {
                     runCatching { startActivity(Intent(Intent.ACTION_VIEW, request.url)) }
+                }
+                return true
+            }
+        }
+
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onShowFileChooser(
+                webView: WebView,
+                callback: ValueCallback<Array<Uri>>,
+                params: FileChooserParams,
+            ): Boolean {
+                filePathCallback?.onReceiveValue(null)
+                filePathCallback = callback
+                try {
+                    chooseFile.launch(params.createIntent())
+                } catch (e: ActivityNotFoundException) {
+                    filePathCallback = null
+                    callback.onReceiveValue(null)
                 }
                 return true
             }
