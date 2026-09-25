@@ -17,4 +17,4 @@ editable or searchable. That is the price of certain.
 
 This app requests no permissions and the OS refuses every network
 connection. One pinned, checksum-verified dependency (Mozilla's PDF.js)
-reads the input; everything else is dependency-free. MIT licensed.
+reads the input; everything else is dependency-free. GPL-3.0-or-later licensed.

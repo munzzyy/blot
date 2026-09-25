@@ -1,6 +1,6 @@
 # Blot
 
-[![release](https://img.shields.io/github/v/release/munzzyy/blot)](https://github.com/munzzyy/blot/releases/latest) [![ci](https://github.com/munzzyy/blot/actions/workflows/ci.yml/badge.svg)](https://github.com/munzzyy/blot/actions/workflows/ci.yml) [![license: MIT](https://img.shields.io/badge/license-MIT-5b4a9e)](LICENSE)
+[![release](https://img.shields.io/github/v/release/munzzyy/blot)](https://github.com/munzzyy/blot/releases/latest) [![ci](https://github.com/munzzyy/blot/actions/workflows/ci.yml/badge.svg)](https://github.com/munzzyy/blot/actions/workflows/ci.yml) [![license: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-5b4a9e)](LICENSE)
 
 Redaction that destroys what it covers.
 
@@ -91,4 +91,4 @@ list the APK's sha256 and signing certificate digest.
 
 ## License
 
-MIT. The vendored PDF.js is Apache-2.0.
+[GPL-3.0-or-later](LICENSE). You can use, study, change and share it. If you distribute a copy or a modified version, it has to stay under the GPL and come with its source. Releases up to v0.4.0 were under MIT. The vendored PDF.js is Apache-2.0.

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- License moved from MIT to GPL-3.0-or-later.
+
 ## 0.4.0
 
 The blind spot in the sweep.
