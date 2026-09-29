@@ -38,7 +38,9 @@ you that it's blocking an install from outside the store; that warning
 exists for apps that misuse permissions, and Blot asks for none. Settings
 offers a one-time "install anyway," which is the only extra step. The
 same release link always points at the current version, so an updater
-like Obtainium can track it for you.
+like [Tern](https://github.com/munzzyy/tern) can track it for you.
+
+[<img src="https://munzzyy.github.io/tern/badge.png" alt="Get it with Tern" height="80">](https://munzzyy.github.io/tern/add/?url=https%3A%2F%2Fgithub.com%2Fmunzzyy%2Fblot)
 
 **iPhone:** there is no hosted copy of the web app to install yet and
 Blot is not on the App Store. Build the `ios/` wrapper yourself with
