@@ -2,7 +2,15 @@
 
 ## Unreleased
 
+## 0.4.1
+
 - License moved from MIT to GPL-3.0-or-later.
+- Android: tapping to choose a PDF did nothing, because the WebView had no
+  chooser wired up. Fixed.
+- Android: on an Android System WebView older than Chromium 124, PDF.js
+  failed to open or render a document. Three missing browser features are
+  now filled in ahead of it (Promise.withResolvers,
+  ArrayBuffer.transferToFixedLength and async iteration of streams).
 
 ## 0.4.0
 

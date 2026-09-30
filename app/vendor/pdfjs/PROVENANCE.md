@@ -36,3 +36,18 @@ Runtime containment: the app's CSP has no unsafe-eval (PDF.js is loaded
 with isEvalSupported false), no network origins, and the worker runs
 same-origin. PDF.js parses hostile bytes, but it does so inside the same
 sandbox every Firefox user already trusts it in.
+
+This build's core-js bundle polyfills Math.sumPrecise, Promise.try,
+Uint8Array.fromBase64/toHex and URL.parse for engines that lack them, but
+misses three calls made bare, found by actually opening a PDF on an
+Android System WebView built on Chromium 109, one after another as each
+got past the last: Promise.withResolvers (both files, Chrome 119);
+ArrayBuffer.prototype.transferToFixedLength in pdf.worker.mjs's font
+substitution path (Chrome 114); and `for await` over a ReadableStream
+when reading a page's text and operator list, which needs
+ReadableStream.prototype[Symbol.asyncIterator] (both files, Chrome 124).
+Without the last one a page that got this far still bounces back to the
+start screen. `app/js/old-webview-shims.mjs` covers all three;
+`app/js/pdfdoc.js` and `app/js/pdf-worker-entry.mjs` import it ahead of
+these files on the main thread and the worker thread respectively.
+Neither vendored file is touched.

@@ -2,9 +2,10 @@
 // flatten are refused with a reason, never half-handled, because a
 // redactor that guesses is worse than none.
 
+import "./old-webview-shims.mjs";
 import * as pdfjs from "../vendor/pdfjs/pdf.mjs";
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL("../vendor/pdfjs/pdf.worker.mjs", import.meta.url).href;
+pdfjs.GlobalWorkerOptions.workerSrc = new URL("./pdf-worker-entry.mjs", import.meta.url).href;
 
 // JBIG2 and JPEG2000 pages decode through these; without a wasmUrl the
 // worker's fetch for jbig2.wasm/openjpeg.wasm fails silently and the page

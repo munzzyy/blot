@@ -1,6 +1,6 @@
 // Blot service worker: offline shell only. Documents never touch a cache.
 
-const VERSION = "blot-v0.4.0";
+const VERSION = "blot-v0.4.1";
 
 const PRECACHE = [
   "/",
@@ -9,6 +9,8 @@ const PRECACHE = [
   "/js/main.js",
   "/js/platform.js",
   "/js/pdfdoc.js",
+  "/js/pdf-worker-entry.mjs",
+  "/js/old-webview-shims.mjs",
   "/js/pdfwrite.js",
   "/js/editor.js",
   "/js/canvasview.js",
