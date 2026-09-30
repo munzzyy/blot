@@ -95,12 +95,11 @@ pipeline.
   letterbox color: `systemBackground` instead of the app's own paper
   color, now fixed.
 
-## No hosted copy yet
+## The no-install alternative
 
-There is no hosted `app/` deployment to install from Safari right now, so
-"Add to Home Screen" is not an available path today. The wrapper you build
-yourself, or the Android APK, are the only ways to run Blot outside a local
-dev server at the moment.
+Safari can install the hosted copy, [blot.munzzyy.dev](https://blot.munzzyy.dev):
+open it, tap Share, then "Add to Home Screen". It is this repo's `app/`
+served at the domain root.
 
 ## One rule for maintainers
 

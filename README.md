@@ -40,16 +40,16 @@ offers a one-time "install anyway," which is the only extra step. The
 same release link always points at the current version, so an updater
 like [Tern](https://github.com/munzzyy/tern) can track it for you.
 
-[<img src="https://munzzyy.github.io/tern/badge.png" alt="Get it with Tern" height="80">](https://munzzyy.github.io/tern/add/?url=https%3A%2F%2Fgithub.com%2Fmunzzyy%2Fblot)
+[<img src="https://tern.munzzyy.dev/badge.png" alt="Get it with Tern" height="80">](https://tern.munzzyy.dev/add/?url=https%3A%2F%2Fgithub.com%2Fmunzzyy%2Fblot)
 
-**iPhone:** there is no hosted copy of the web app to install yet and
-Blot is not on the App Store. Build the `ios/` wrapper yourself with
-Xcode ([docs/IOS.md](docs/IOS.md)) or run `node test/serve_local.mjs` on
-a computer and open it in Safari on the same network.
+**iPhone:** open [blot.munzzyy.dev](https://blot.munzzyy.dev) in Safari, tap
+Share, then "Add to Home Screen". Blot is not on the App Store; you can
+also build the `ios/` wrapper yourself with Xcode
+([docs/IOS.md](docs/IOS.md)).
 
-**Anywhere else:** `app/` is the whole web app, a static page with no
-build step and no server side; serve it from anything that can serve
-files.
+**Anywhere else:** open [blot.munzzyy.dev](https://blot.munzzyy.dev). `app/`
+is the whole web app, a static page with no build step and no server side,
+so you can also serve your own copy from anything that can serve files.
 
 ## Check the claims
 
@@ -79,8 +79,8 @@ For development: `node test/serve_local.mjs` serves the web app, and
 
 There is also a native iOS wrapper around the same `app/`, built with
 Xcode from a generated project rather than a checked-in one. It has no
-prebuilt release yet, and there is no hosted copy of the web app to
-install from Safari either; both are build-it-yourself for now. Details,
+prebuilt release yet; Safari can install the hosted web app from
+[blot.munzzyy.dev](https://blot.munzzyy.dev) instead. Details,
 and exactly how the wrapper differs from the Android app:
 [docs/IOS.md](docs/IOS.md).
 
