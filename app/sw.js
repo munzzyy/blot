@@ -9,6 +9,8 @@ const PRECACHE = [
   "/js/main.js",
   "/js/platform.js",
   "/js/pdfdoc.js",
+  "/js/pdf-worker-entry.mjs",
+  "/js/old-webview-shims.mjs",
   "/js/pdfwrite.js",
   "/js/editor.js",
   "/js/canvasview.js",
