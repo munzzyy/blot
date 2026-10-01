@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+- Sweep and search hits land on the text on pages with a CropBox, a
+  MediaBox that does not start at 0 0, a /Rotate, or text set at an angle.
+  On a cropped page they used to sit 75 px off, so accepting one inked
+  blank paper and left the SSN readable.
+- Search and the sweep find text that pdf.js hands over in pieces, like a
+  surname set in bold or an SSN broken after the second dash. The sweep
+  also flags card numbers, IBANs, and SSNs written with spaces.
+- Text typed onto a PDF with a viewer's text box tool is swept and
+  searched too. It always ended up in the output, but nothing flagged it.
+- The proof screen says how many sweep or search matches were left
+  uncovered, and on which pages. It does not block Share or Save. Delete
+  or Backspace on a focused suggestion dismisses it.
+- Pixelating across an ink box no longer fails the export with "Something
+  survived". When the coverage check does fail, it names the pages.
+- Screen readers hear what a suggestion matched, such as an SSN-shaped
+  match and its digits, instead of "Code suggestion".
+- Spanish says tachar instead of redactar, which means to write. The
+  refusal hints and the app's share hint stay in Spanish after a language
+  change.
+- Android: a PDF shared in from another app keeps its name in the export.
+  On Android 9, saving through the picker says "Saved" instead of "Saved to
+  Downloads".
+- iOS: the app reports its real version and build number instead of 1.0.
+- The Gradle wrapper checks the sha256 of the Gradle it downloads.
+
 ## 0.4.3
 
 - A new icon: a black ink blot on plum, so Blot no longer looks like the
