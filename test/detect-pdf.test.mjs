@@ -10,8 +10,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as pdfjs from "../app/vendor/pdfjs/pdf.mjs";
-import { sweepPatterns } from "../app/js/detect.js";
-import { makeTextPdf, makeCropBoxPdf, makeOffsetOriginPdf, makeRotatedPagePdf, makeRotatedTextPdf } from "./fixtures-pdf.mjs";
+import { sweepPatterns, findMatches } from "../app/js/detect.js";
+import { makeTextPdf, makeCropBoxPdf, makeOffsetOriginPdf, makeRotatedPagePdf, makeRotatedTextPdf, makeBoldSurnamePdf } from "./fixtures-pdf.mjs";
 
 pdfjs.GlobalWorkerOptions.workerSrc = fileURLToPath(new URL("../app/vendor/pdfjs/pdf.worker.mjs", import.meta.url));
 
@@ -35,16 +35,16 @@ async function renderInfo(bytes) {
   }
 }
 
-// poppler's box for the word holding the SSN, in the rendered page's pixels.
-function popplerWord(bytes) {
+// poppler's box for the word holding `text`, in the rendered page's pixels.
+function popplerWordMatching(bytes, text) {
   const dir = mkdtempSync(path.join(tmpdir(), "blot-detect-"));
   try {
     const file = path.join(dir, "in.pdf");
     writeFileSync(file, bytes);
     const xml = execFileSync("pdftotext", ["-cropbox", "-bbox", file, "-"], { encoding: "utf8" });
-    const m = xml.match(/<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">[^<]*123-45-6789<\/word>/);
+    const m = [...xml.matchAll(/<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<\/word>/g)].find((w) => w[5].includes(text));
     assert.ok(m, xml);
-    const [x0, y0, x1, y1] = m.slice(1).map((v) => Number(v) * SCALE);
+    const [x0, y0, x1, y1] = m.slice(1, 5).map((v) => Number(v) * SCALE);
     return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -79,7 +79,7 @@ for (const [name, bytes, runs] of cases) {
     const hits = sweepPatterns(info.items, info).filter((h) => h.pattern === "ssn");
     assert.equal(hits.length, 1, JSON.stringify(hits));
     const hit = hits[0].rect;
-    const word = popplerWord(bytes);
+    const word = popplerWordMatching(bytes, "123-45-6789");
     // The box reaches a full font size above the baseline, poppler's word stops at the ascent: 7 px at this scale.
     assert.ok(inside(hit, word, 8), `hit ${JSON.stringify(hit)} not on word ${JSON.stringify(word)}`);
     const ssn = ssnSpan(word, runs);
@@ -97,4 +97,14 @@ test("plain page hit matches the old geometry, plus the descent", async () => {
   assert.ok(Math.abs(hit.rect.y - head.y) < 1, JSON.stringify(hit.rect));
   assert.ok(Math.abs(hit.rect.w - head.w) < 1, JSON.stringify(hit.rect));
   assert.ok(Math.abs(hit.rect.h - (head.h + 0.25 * 12 * SCALE)) < 1, JSON.stringify(hit.rect));
+});
+
+test("a surname set in bold still matches the full name", async () => {
+  const info = await renderInfo(makeBoldSurnamePdf());
+  assert.ok(info.items.filter((i) => i.str.trim()).length >= 2, JSON.stringify(info.items.map((i) => i.str)));
+  const hits = findMatches(info.items, info, "John Smith");
+  assert.equal(hits.length, 1, JSON.stringify(hits));
+  const word = popplerWordMatching(makeBoldSurnamePdf(), "Smith");
+  const r = hits[0].rect;
+  assert.ok(r.x + r.w >= word.x + word.w - 1, `hit ${JSON.stringify(r)} stops short of ${JSON.stringify(word)}`);
 });

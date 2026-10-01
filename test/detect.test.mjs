@@ -84,14 +84,78 @@ test("findMatches: no query, no hits", () => {
   assert.equal(findMatches(items, PAGE, "").length, 0);
 });
 
+// ------------------------------------------------- text split across items
+
+// Helvetica widths at 12 pt: "Patient: John" is 69.804, a space 3.336,
+// "Smith" in Helvetica-Bold 33.336.
+const patient = [
+  { str: "Patient: John", width: 69.804, height: 12, transform: [12, 0, 0, 12, 50, 700] },
+  { str: " ", width: 3.336, height: 12, transform: [12, 0, 0, 12, 119.804, 700] },
+  { str: "Smith", width: 33.336, height: 12, transform: [12, 0, 0, 12, 123.14, 700] },
+];
+
+test("findMatches: a name split across items on one baseline is one hit", () => {
+  const hits = findMatches(patient, PAGE, "John Smith");
+  assert.equal(hits.length, 1, JSON.stringify(hits));
+  const john = itemRect(patient[0], PAGE, 9 / 13, 1);
+  const smith = itemRect(patient[2], PAGE);
+  const r = hits[0].rect;
+  assert.ok(Math.abs(r.x - john.x) < 0.01, JSON.stringify({ r, john }));
+  assert.ok(Math.abs(r.x + r.w - (smith.x + smith.w)) < 0.01, JSON.stringify({ r, smith }));
+  assert.equal(hits[0].text, "John Smith");
+});
+
+test("findMatches: runs of spaces in the query match a single space", () => {
+  assert.equal(findMatches(patient, PAGE, "John  Smith").length, 1);
+});
+
+test("sweepPatterns: an SSN split across two items is one hit", () => {
+  const items = [item("SSN 123-45-", 50, 700), item("6789", 50 + 11 * 7, 700)];
+  const hits = sweepPatterns(items, PAGE).filter((h) => h.pattern === "ssn");
+  assert.equal(hits.length, 1, JSON.stringify(hits));
+  assert.equal(hits[0].text, "123-45-6789");
+});
+
+test("sweepPatterns: items far apart on one baseline never join", () => {
+  const items = [item("Total 123", 50, 700), item("45-6789", 300, 700)];
+  assert.equal(sweepPatterns(items, PAGE).filter((h) => h.pattern === "ssn").length, 0);
+});
+
+test("findMatches: a gap narrower than a space joins with a space between", () => {
+  const items = [item("John", 50, 700), item("Smith", 50 + 4 * 7 + 2, 700)];
+  assert.equal(findMatches(items, PAGE, "john smith").length, 1);
+});
+
+test("sweepPatterns: the same text on the next line down does not join", () => {
+  const items = [item("SSN 123-45-", 50, 700), item("6789", 50 + 11 * 7, 686)];
+  assert.equal(sweepPatterns(items, PAGE).filter((h) => h.pattern === "ssn").length, 0);
+});
+
 // -------------------------------------------------------------- patterns
 
 const cases = {
   ssn: { hit: "SSN on file: 123-45-6789 end", miss: "not an ssn: 123-456-789" },
   phone: { hit: "call (415) 555-0132 now", miss: "not a phone: 55-0132" },
   email: { hit: "reach me at jane.doe@example.com please", miss: "no at-sign here.example.com" },
+  card: { hit: "card 4111 1111 1111 1111 exp 09/29", miss: "ref 4111 1111 1111 only" },
+  iban: { hit: "IBAN ES91 2100 0418 4502 0005 1332 please", miss: "code AB12 3456 only" },
   account: { hit: "acct 00481293754 on file", miss: "short 12345 code" },
 };
+
+for (const [name, text] of [
+  ["card", "4111 1111 1111 1111"],
+  ["card", "4111-1111-1111-1111"],
+  ["card", "3782 822463 10005"],
+  ["iban", "ES91 2100 0418 4502 0005 1332"],
+  ["iban", "GB29NWBK60161331926819"],
+  ["ssn", "123 45 6789"],
+]) {
+  test(`pattern ${name} matches ${text}`, () => {
+    const hits = findMatches([item(text, 0, 0)], PAGE, PATTERNS[name]);
+    assert.equal(hits.length, 1, JSON.stringify(hits));
+    assert.equal(hits[0].text, text);
+  });
+}
 
 for (const [name, { hit, miss }] of Object.entries(cases)) {
   test(`pattern ${name}: true case matches`, () => {
