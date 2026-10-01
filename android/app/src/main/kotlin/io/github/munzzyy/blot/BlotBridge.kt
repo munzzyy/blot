@@ -2,6 +2,7 @@ package io.github.munzzyy.blot
 
 import android.content.ContentValues
 import android.content.Intent
+import android.os.Build
 import android.provider.MediaStore
 import android.util.Base64
 import android.webkit.JavascriptInterface
@@ -48,10 +49,15 @@ class BlotBridge(private val activity: MainActivity) {
         }
     }
 
-    // Exports land in Downloads, where a zip belongs.
+    // Exports land in Downloads, where a zip belongs. MediaStore.Downloads needs Android 10;
+    // below that there is no such folder to write to without asking, so a picker asks instead.
     @JavascriptInterface
     fun saveFile(b64: String, mime: String, name: String) {
         val bytes = runCatching { Base64.decode(b64, Base64.DEFAULT) }.getOrNull() ?: return
+        if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            activity.runOnUiThread { activity.saveThroughPicker(bytes, sanitize(name)) }
+            return
+        }
         val values = ContentValues().apply {
             put(MediaStore.Downloads.DISPLAY_NAME, sanitize(name))
             put(MediaStore.Downloads.MIME_TYPE, mime)
