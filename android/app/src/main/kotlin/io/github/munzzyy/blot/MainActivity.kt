@@ -1,6 +1,7 @@
 package io.github.munzzyy.blot
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -39,6 +40,8 @@ class MainActivity : ComponentActivity() {
 
         // The oldest WebView the open, ink and export flow was proven on; Chromium 66 cannot parse the page.
         const val MIN_WEBVIEW_MAJOR = 109
+        private const val PREFS = "blot"
+        private const val KEY_ANDROID9_NOTED = "android9_noted"
     }
 
     lateinit var webView: WebView
@@ -82,6 +85,19 @@ class MainActivity : ComponentActivity() {
     }
 
     @SuppressLint("SetJavaScriptEnabled")
+    private fun noteAndroid9Once() {
+        if (Build.VERSION.SDK_INT != Build.VERSION_CODES.P) return
+        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_ANDROID9_NOTED, false)) return
+        val noted = { prefs.edit().putBoolean(KEY_ANDROID9_NOTED, true).apply() }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.android9_title)
+            .setMessage(R.string.android9_body)
+            .setPositiveButton(android.R.string.ok) { _, _ -> noted() }
+            .setOnCancelListener { noted() }
+            .show()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -99,6 +115,7 @@ class MainActivity : ComponentActivity() {
 
         webView = WebView(this)
         setContentView(webView)
+        noteAndroid9Once()
 
         assetLoader = WebViewAssetLoader.Builder()
             .addPathHandler("/shared/") { path -> serveShared(path) }

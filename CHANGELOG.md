@@ -8,6 +8,8 @@
 - Android: with an Android System WebView older than Chromium 109, Blot
   shows a plain screen asking you to update it, with a button to its store
   page, instead of a blank page. Phones with Google Play keep it current.
+- Android: on Android 9, Blot says once that Google's last security fixes
+  for it came out in January 2022.
 
 ## 0.4.1
 
