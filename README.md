@@ -33,7 +33,7 @@ the cost of certain.
 ## Get it
 
 **Android:** install [blot.apk](https://github.com/munzzyy/blot/releases/latest/download/blot.apk)
-on Android 9 or newer, with Android System WebView at Chromium 124 or
+on Android 9 or newer, with Android System WebView at Chromium 109 or
 later (Android 9 phones with Google Play keep this current by
 themselves; a stock, never-updated WebView is older than that). Below
 that version, Blot shows a plain screen asking you to update WebView

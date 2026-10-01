@@ -37,9 +37,8 @@ class MainActivity : ComponentActivity() {
         const val START_URL = "https://$ASSET_HOST/index.html"
         const val AUTHORITY = "io.github.munzzyy.blot.files"
 
-        // Below this, pdf.js's legacy build calls runtime features (private class
-        // fields among them) that no shim can fake, so the page cannot run at all.
-        const val MIN_WEBVIEW_MAJOR = 124
+        // The oldest WebView the open, ink and export flow was proven on; Chromium 66 cannot parse the page.
+        const val MIN_WEBVIEW_MAJOR = 109
     }
 
     lateinit var webView: WebView
