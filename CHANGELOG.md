@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.3
+
+- A new icon: a black ink blot on plum, so Blot no longer looks like the
+  other apps' white page on a colored square. The Android icon has a
+  single-color layer too, for launchers that theme icons.
+
 ## 0.4.2
 
 - Android: runs on Android 9. A redacted PDF is saved there through the
