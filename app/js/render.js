@@ -66,21 +66,23 @@ export function bakedOpRect(op, out, canvasWidth, canvasHeight) {
 }
 
 // The finished output: cropped frame, ops burned in, in image resolution.
+// Ink goes down before pixelation, so no pixel cell averages text that ink
+// covers, and again after it, so pixelation never lightens ink.
 export function bake(bitmap, editor) {
   const out = cropOutRect(editor);
   const canvas = makeCanvas(out.w, out.h);
   const ctx = canvas.getContext("2d");
   ctx.drawImage(bitmap, -out.x, -out.y);
-  for (const op of paintOps(editor)) {
-    const r = bakedOpRect(op, out, canvas.width, canvas.height);
-    if (!r) continue;
-    if (op.type === "ink") {
-      ctx.fillStyle = INK;
-      ctx.fillRect(r.x, r.y, r.w, r.h);
-    } else if (op.type === "pixelate") {
-      if (r.w > 0 && r.h > 0) pixelateRegion(ctx, canvas, r, pixelCell(op.rect));
-    }
-  }
+  const placed = paintOps(editor)
+    .map((op) => ({ op, r: bakedOpRect(op, out, canvas.width, canvas.height) }))
+    .filter(({ r }) => r && r.w > 0 && r.h > 0);
+  const ink = () => {
+    ctx.fillStyle = INK;
+    for (const { op, r } of placed) if (op.type === "ink") ctx.fillRect(r.x, r.y, r.w, r.h);
+  };
+  ink();
+  for (const { op, r } of placed) if (op.type === "pixelate") pixelateRegion(ctx, canvas, r, pixelCell(op.rect));
+  ink();
   return canvas;
 }
 

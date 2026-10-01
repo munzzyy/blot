@@ -92,23 +92,22 @@ export function createCanvasView(host) {
 
     const editor = host.getEditor();
     const mosaic = host.getMosaic();
+    // Same order as bake(): ink always ends up on top of pixelation.
     for (const op of paintOps(editor)) {
+      if (op.type !== "pixelate") continue;
       const r = op.rect;
-      if (op.type === "ink") {
-        ctx.fillStyle = INK;
-        drawRectPx(r);
+      if (mosaic) {
+        const prev = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(mosaic, r.x / 16, r.y / 16, r.w / 16, r.h / 16, r.x, r.y, r.w, r.h);
+        ctx.imageSmoothingEnabled = prev;
       } else {
-        if (mosaic) {
-          const prev = ctx.imageSmoothingEnabled;
-          ctx.imageSmoothingEnabled = false;
-          ctx.drawImage(mosaic, r.x / 16, r.y / 16, r.w / 16, r.h / 16, r.x, r.y, r.w, r.h);
-          ctx.imageSmoothingEnabled = prev;
-        } else {
-          ctx.fillStyle = "rgba(20,20,20,0.85)";
-          drawRectPx(r);
-        }
+        ctx.fillStyle = "rgba(20,20,20,0.85)";
+        drawRectPx(r);
       }
     }
+    ctx.fillStyle = INK;
+    for (const op of paintOps(editor)) if (op.type === "ink") drawRectPx(op.rect);
 
     const px = 1 / view.scale;
 

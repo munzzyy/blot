@@ -42,6 +42,7 @@ let session = null;
 let view = null;
 let closeArmed = false;
 let currentTool = "ink";
+let exporting = false;
 
 const app = {
   get state() {
@@ -70,6 +71,7 @@ globalThis.__blotTestHooks = {
   addOp,
   acceptSuggestion,
   checkCoverage,
+  renderProof,
   setCrop,
   cropOffset,
   addKeyboardBox: () => view.addKeyboardBox(),
@@ -329,7 +331,9 @@ function closeDoc() {
 // ---------------------------------------------------------------- export
 
 async function runExport() {
-  if (!session) return;
+  // Ctrl+Enter reaches here without going through the disabled button.
+  if (!session || exporting) return;
+  exporting = true;
   const btn = $("btn-export");
   btn.disabled = true;
   const label = btn.textContent;
@@ -386,6 +390,7 @@ async function runExport() {
   } finally {
     btn.disabled = false;
     btn.textContent = label;
+    exporting = false;
   }
 }
 
@@ -410,7 +415,8 @@ function renderProof(verify, coverage, size) {
   $("done-report-contact").hidden = clean;
   const facts = $("done-facts");
   facts.textContent = "";
-  const checkedBoxes = coverage.pages.reduce((n, p) => n + (p.ok ? p.checked : 0), 0);
+  const checkedBoxes = coverage.pages.reduce((n, p) => n + p.checked, 0);
+  const lightPages = coverage.pages.filter((p) => !p.ok).map((p) => p.page);
   const lines = [
     t("{count} page(s), images only", { count: verify.pages ?? 0 }),
     t("Extractable text items: {count}", { count: verify.textItems ?? "?" }),
@@ -422,7 +428,7 @@ function renderProof(verify, coverage, size) {
     lines.push(
       coverage.ok
         ? t("Ink coverage: every covered spot re-rendered dark")
-        : t("Ink coverage: a covered spot re-rendered light. Do not share this file."),
+        : t("Ink coverage: a covered spot re-rendered light on page(s) {list}. Do not share this file.", { list: lightPages.join(", ") }),
     );
   }
   for (const text of lines) {

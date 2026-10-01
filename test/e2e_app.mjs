@@ -452,6 +452,112 @@ async function main() {
     const brightnessP = (probeP.spot[0] + probeP.spot[1] + probeP.spot[2]) / 3;
     check("pixelate: covered region is visually distinct from solid ink (not near-black)", brightnessP > 40, JSON.stringify(probeP));
 
+    // ------------------------------------------------ pixelate over ink
+    // Pixelating across an ink box used to average the ink with the page
+    // around it, so the coverage probe read light and blocked the export.
+    const bakeOrder = await c.evalJs(
+      `(async () => {
+        const { bake } = await import("/js/render.js");
+        const { createEditor, addOp } = await import("/js/editor.js");
+        const ink = { x: 100, y: 50, w: 100, h: 40 };
+        const pix = { x: 50, y: 20, w: 200, h: 120 };
+        const page = (marks) => {
+          const cv = document.createElement("canvas");
+          cv.width = 400;
+          cv.height = 200;
+          const ctx = cv.getContext("2d");
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0, 0, 400, 200);
+          ctx.fillStyle = "#3a6";
+          ctx.fillRect(60, 30, 30, 100);
+          ctx.fillRect(220, 60, 20, 70);
+          if (marks) {
+            ctx.fillStyle = "#000";
+            ctx.fillRect(102, 52, 20, 36);
+            ctx.fillRect(150, 60, 48, 28);
+          }
+          return cv;
+        };
+        const out = {};
+        for (const order of [["ink", "pixelate"], ["pixelate", "ink"]]) {
+          const run = (cv) => {
+            const ed = createEditor(400, 200);
+            for (const type of order) addOp(ed, type, type === "ink" ? ink : pix);
+            const baked = bake(cv, ed);
+            return baked.getContext("2d").getImageData(0, 0, baked.width, baked.height).data;
+          };
+          const plain = run(page(false));
+          const marked = run(page(true));
+          let same = plain.length === marked.length;
+          for (let i = 0; same && i < plain.length; i++) if (plain[i] !== marked[i]) same = false;
+          let solid = true;
+          for (let y = ink.y; y < ink.y + ink.h; y++) {
+            for (let x = ink.x; x < ink.x + ink.w; x++) {
+              const i = (y * 400 + x) * 4;
+              if (marked[i] !== 0x0e || marked[i + 1] !== 0x0c || marked[i + 2] !== 0x0a) solid = false;
+            }
+          }
+          out[order.join(" then ")] = { same, solid };
+        }
+        return out;
+      })()`,
+      true,
+    );
+    for (const [order, r] of Object.entries(bakeOrder)) {
+      check(`bake, ${order}: nothing under the ink reaches the output`, r.same, JSON.stringify(r));
+      check(`bake, ${order}: the ink stays solid ink`, r.solid, JSON.stringify(r));
+    }
+
+    await c.evalJs("document.getElementById('btn-again').click(); 'ok'");
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), "back to start for pixelate over ink");
+    await pickFile(c, textPdf);
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'edit' && __blotApi.state.pages === 1"), "text pdf reopened for pixelate over ink");
+    const labelBefore = await c.evalJs(`(() => {
+      const editor = __blotApi.session().pages[0].editor;
+      __blotTestHooks.addOp(editor, "ink", { x: 100, y: 150, w: 400, h: 60 });
+      __blotTestHooks.addOp(editor, "pixelate", { x: 300, y: 120, w: 400, h: 120 });
+      window.__digests = 0;
+      const digest = crypto.subtle.digest.bind(crypto.subtle);
+      crypto.subtle.digest = (...args) => {
+        window.__digests++;
+        return digest(...args);
+      };
+      return document.getElementById("btn-export").textContent;
+    })()`);
+    await c.evalJs(`(() => {
+      for (let i = 0; i < 2; i++) document.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true }));
+      return true;
+    })()`);
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'done' && !document.getElementById('btn-export').disabled"), "pixelate over ink export done", 60000);
+    await sleep(500);
+    const overInk = await c.evalJs(`(() => {
+      const out = {
+        title: document.getElementById("done-title").textContent,
+        share: !document.getElementById("btn-share").hidden,
+        digests: window.__digests,
+        label: document.getElementById("btn-export").textContent,
+      };
+      delete crypto.subtle.digest;
+      return out;
+    })()`);
+    check("pixelate over ink: Checked clean", overInk.title === "Checked clean", JSON.stringify(overInk));
+    check("pixelate over ink: Share is offered", overInk.share, JSON.stringify(overInk));
+    check("two quick Ctrl+Enter presses export once", overInk.digests === 1, JSON.stringify(overInk));
+    check("export button gets its own label back", overInk.label === labelBefore, JSON.stringify({ labelBefore, ...overInk }));
+    const outFileOi = path.join(work, "pixelate-over-ink.pdf");
+    await saveExport(c, outFileOi);
+    check("pixelate over ink: poppler extracts ZERO text", execFileSync("pdftotext", [outFileOi, "-"], { encoding: "utf8" }).trim() === "");
+
+    const failFacts = await c.evalJs(`(() => {
+      __blotTestHooks.renderProof(
+        { ok: true, pages: 1, textItems: 0, annotations: 0, formFields: 0 },
+        { ok: false, pages: [{ page: 1, ok: false, checked: 5 }] },
+        1000,
+      );
+      return document.getElementById("done-facts").textContent;
+    })()`);
+    check("failed coverage says so and names the page", failFacts.includes("Ink coverage: a covered spot re-rendered light") && /page\(s\) 1\b/.test(failFacts), failFacts);
+
     // ----------------------------------------------------------- crop (item 3)
     await c.evalJs("document.getElementById('btn-again').click(); 'ok'");
     await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), "back to start for crop run");

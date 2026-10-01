@@ -161,8 +161,8 @@ export const es = {
     "Añadido a {applied} de {total} páginas. {clamped} tenían un tamaño de página distinto y se escalaron para encajar; revísalas.",
 
   "Ink coverage: every covered spot re-rendered dark": "Cobertura de tinta: cada punto cubierto se renderizó oscuro al volver a abrirlo",
-  "Ink coverage: a covered spot re-rendered light. Do not share this file.":
-    "Cobertura de tinta: un punto cubierto se renderizó claro al volver a abrirlo. No compartas este archivo.",
+  "Ink coverage: a covered spot re-rendered light on page(s) {list}. Do not share this file.":
+    "Cobertura de tinta: un punto cubierto se renderizó claro al volver a abrirlo en la(s) página(s) {list}. No compartas este archivo.",
 
   "Verification receipt": "Recibo de verificación",
   "SHA-256 of the exact file below. Not a signature: it proves these bytes were not changed after this screen, not who made them or that they are safe to send. Save it alongside the file if you want to re-check later.":
