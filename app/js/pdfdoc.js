@@ -4,6 +4,7 @@
 
 import "./old-webview-shims.mjs";
 import * as pdfjs from "../vendor/pdfjs/pdf.mjs";
+import { annotationItems } from "./detect.js";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL("./pdf-worker-entry.mjs", import.meta.url).href;
 
@@ -105,7 +106,8 @@ export async function renderPage(doc, pageNum, scale = RENDER_SCALE) {
   await page.render({ canvasContext: ctx, viewport }).promise;
   const base = page.getViewport({ scale: 1 });
   const textContent = await page.getTextContent();
-  return { canvas, widthPt: base.width, heightPt: base.height, textItems: textContent.items, scale, transform: viewport.transform };
+  const textItems = [...textContent.items, ...annotationItems(await page.getAnnotations(), viewport.transform)];
+  return { canvas, widthPt: base.width, heightPt: base.height, textItems, scale, transform: viewport.transform };
 }
 
 // The proof step: reopen the finished bytes and count everything that

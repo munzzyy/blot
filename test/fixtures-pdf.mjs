@@ -83,6 +83,36 @@ export function makeBoldSurnamePdf() {
   ]);
 }
 
+// Text typed on with a viewer's text-box tool: a FreeText annotation whose
+// appearance stream draws the SSN, next to page text that has none.
+// hidden sets /F 2; sticky makes it a /Text note, which draws only an icon.
+export function makeFreeTextPdf({ hidden = false, sticky = false, pageText = "Tenant statement, page text only" } = {}) {
+  const content = pageText ? `BT /F1 12 Tf 50 700 Td ${pdfString(pageText)} Tj ET` : "";
+  const ap = "BT /F1 12 Tf 2 5 Td (SSN 123-45-6789) Tj ET";
+  const annot = sticky
+    ? "<< /Type /Annot /Subtype /Text /Rect [50 600 250 620] /Contents (SSN 123-45-6789) >>"
+    : `<< /Type /Annot /Subtype /FreeText /Rect [50 600 250 620] /Contents (SSN 123-45-6789) /DA (/Helv 12 Tf 0 g)${hidden ? " /F 2" : ""} /AP << /N 7 0 R >> >>`;
+  return assemble([
+    { id: 1, src: "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" },
+    { id: 2, src: "2 0 obj\n<< /Type /Pages /Kids [ 3 0 R ] /Count 1 >>\nendobj\n" },
+    {
+      id: 3,
+      src:
+        "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] " +
+        "/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R /Annots [ 6 0 R ] >>\nendobj\n",
+    },
+    { id: 4, src: "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n" },
+    { id: 5, src: `5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n` },
+    { id: 6, src: `6 0 obj\n${annot}\nendobj\n` },
+    {
+      id: 7,
+      src:
+        "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 200 20] /Resources << /Font << /F1 4 0 R >> >> " +
+        `/Length ${ap.length} >>\nstream\n${ap}\nendstream\nendobj\n`,
+    },
+  ]);
+}
+
 // Two pages, same size, for exercising repeat-across-pages: a box drawn
 // on page 1 should be cloneable onto page 2.
 export function makeTwoPageTextPdf(page1Lines, page2Lines) {

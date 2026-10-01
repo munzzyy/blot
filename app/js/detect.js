@@ -1,10 +1,10 @@
-// Suggestion engine: search the INPUT's own text layer, nothing else. No
-// OCR, no guessing about what pixels say. A hit exists only where pdf.js's
-// own text extraction found a string, so every rectangle this file returns
-// is a SUGGESTION for a human to look at and accept, never a box that gets
-// inked on its own. Two entry points share this file: free-text search
-// (find-and-cover) and the preset pattern sweep that runs automatically on
-// open.
+// Suggestion engine: search the INPUT's own text layer and the text of its
+// FreeText annotations, nothing else. No OCR, no guessing about what pixels
+// say. A hit exists only where pdf.js found a string, so every rectangle
+// this file returns is a SUGGESTION for a human to look at and accept,
+// never a box that gets inked on its own. Two entry points share this
+// file: free-text search (find-and-cover) and the preset pattern sweep that
+// runs automatically on open.
 
 // [a, b, c, d, e, f] maps (x, y) to (a*x + c*y + e, b*x + d*y + f).
 function applyPoint(m, x, y) {
@@ -27,6 +27,7 @@ const DESCENT_EM = 0.25;
 // with. item.width/height are already in page points, so item.transform
 // only gives the origin and directions; its font size must not apply twice.
 export function itemRect(item, page, t0 = 0, t1 = 1) {
+  if (item.box) return { ...item.box };
   const [a, b, c, d, e, f] = item.transform;
   const run = Math.hypot(a, b) || 1;
   const rise = Math.hypot(c, d) || 1;
@@ -42,6 +43,31 @@ export function itemRect(item, page, t0 = 0, t1 = 1) {
   const x = Math.min(...xs);
   const y = Math.min(...ys);
   return { x, y, w: Math.max(1, Math.max(...xs) - x), h: Math.max(1, Math.max(...ys) - y) };
+}
+
+// pdf.js skips drawing an annotation flagged invisible, hidden or no-view.
+const NOT_DRAWN = 0x01 | 0x02 | 0x20;
+
+// A viewer's text box is a FreeText annotation that pdf.js draws but the text layer lacks; hits cover its whole rect.
+export function annotationItems(annots, transform) {
+  const items = [];
+  for (const a of annots || []) {
+    const str = a.contentsObj?.str ?? a.contents ?? "";
+    if (a.subtype !== "FreeText" || !str.trim() || a.annotationFlags & NOT_DRAWN || !Array.isArray(a.rect)) continue;
+    const [x1, y1, x2, y2] = a.rect;
+    const pts = [
+      [x1, y1],
+      [x1, y2],
+      [x2, y1],
+      [x2, y2],
+    ].map(([x, y]) => applyPoint(transform, x, y));
+    const xs = pts.map((p) => p[0]);
+    const ys = pts.map((p) => p[1]);
+    const x = Math.min(...xs);
+    const y = Math.min(...ys);
+    items.push({ str, box: { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y } });
+  }
+  return items;
 }
 
 // Empty or whitespace-only text items: the sweep and search find nothing here no matter what the page shows.

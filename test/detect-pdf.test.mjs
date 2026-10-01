@@ -10,8 +10,16 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as pdfjs from "../app/vendor/pdfjs/pdf.mjs";
-import { sweepPatterns, findMatches } from "../app/js/detect.js";
-import { makeTextPdf, makeCropBoxPdf, makeOffsetOriginPdf, makeRotatedPagePdf, makeRotatedTextPdf, makeBoldSurnamePdf } from "./fixtures-pdf.mjs";
+import { sweepPatterns, findMatches, annotationItems, isTextless } from "../app/js/detect.js";
+import {
+  makeTextPdf,
+  makeCropBoxPdf,
+  makeOffsetOriginPdf,
+  makeRotatedPagePdf,
+  makeRotatedTextPdf,
+  makeBoldSurnamePdf,
+  makeFreeTextPdf,
+} from "./fixtures-pdf.mjs";
 
 pdfjs.GlobalWorkerOptions.workerSrc = fileURLToPath(new URL("../app/vendor/pdfjs/pdf.worker.mjs", import.meta.url));
 
@@ -29,7 +37,8 @@ async function renderInfo(bytes) {
     const viewport = page.getViewport({ scale: SCALE });
     const base = page.getViewport({ scale: 1 });
     const { items } = await page.getTextContent();
-    return { items, scale: SCALE, widthPt: base.width, heightPt: base.height, transform: viewport.transform };
+    const annots = await page.getAnnotations();
+    return { items, annots, scale: SCALE, widthPt: base.width, heightPt: base.height, transform: viewport.transform };
   } finally {
     await task.destroy();
   }
@@ -107,4 +116,33 @@ test("a surname set in bold still matches the full name", async () => {
   const word = popplerWordMatching(makeBoldSurnamePdf(), "Smith");
   const r = hits[0].rect;
   assert.ok(r.x + r.w >= word.x + word.w - 1, `hit ${JSON.stringify(r)} stops short of ${JSON.stringify(word)}`);
+});
+
+// The FreeText's /Rect [50 600 250 620] on a 792 pt page, in rendered pixels.
+const FREETEXT_PX = { x: 50 * SCALE, y: (792 - 620) * SCALE, w: 200 * SCALE, h: 20 * SCALE };
+
+test("a FreeText annotation's text is swept, and the hit covers the whole annotation", async () => {
+  const info = await renderInfo(makeFreeTextPdf());
+  const extra = annotationItems(info.annots, info.transform);
+  assert.equal(extra.length, 1, JSON.stringify(extra));
+  const hits = sweepPatterns([...info.items, ...extra], info).filter((h) => h.pattern === "ssn");
+  assert.equal(hits.length, 1, JSON.stringify(hits));
+  for (const k of ["x", "y", "w", "h"]) assert.ok(Math.abs(hits[0].rect[k] - FREETEXT_PX[k]) < 0.5, JSON.stringify(hits[0].rect));
+});
+
+for (const [name, opts] of [
+  ["a hidden FreeText", { hidden: true }],
+  ["a sticky note", { sticky: true }],
+]) {
+  test(`${name} adds nothing to search`, async () => {
+    const info = await renderInfo(makeFreeTextPdf(opts));
+    assert.equal(info.annots.length, 1);
+    assert.equal(annotationItems(info.annots, info.transform).length, 0);
+  });
+}
+
+test("a page whose only text is a FreeText is not textless", async () => {
+  const info = await renderInfo(makeFreeTextPdf({ pageText: "" }));
+  assert.equal(info.items.filter((i) => i.str.trim()).length, 0);
+  assert.equal(isTextless([...info.items, ...annotationItems(info.annots, info.transform)]), false);
 });

@@ -24,6 +24,7 @@ import {
   makeXfaPdf,
   makeLongPdf,
   makeGarbagePdf,
+  makeFreeTextPdf,
 } from "./fixtures-pdf.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -733,6 +734,53 @@ async function main() {
     check("CropBox page: poppler extracts ZERO text from the output", execFileSync("pdftotext", [outFileCb, "-"], { encoding: "utf8" }).trim() === "");
     const ssnGray = meanGray(outFileCb, ssnBox, work);
     check("CropBox page: the SSN's own spot is inked in the output", ssnGray < 60, `mean ${ssnGray.toFixed(1)} over ${JSON.stringify(ssnBox)}`);
+
+    // ------------------------------------------ text typed on as FreeText
+    // A viewer's text box draws into the page image but is not page text,
+    // so the sweep used to see nothing and the SSN shipped unflagged.
+    const freeTextPdf = path.join(fixDir, "freetext.pdf");
+    writeFileSync(freeTextPdf, makeFreeTextPdf());
+    const annotPx = { x: (50 * 150) / 72, y: ((792 - 620) * 150) / 72, w: (200 * 150) / 72, h: (20 * 150) / 72 };
+    check("negative control: poppler reads the FreeText SSN in the input", execFileSync("pdftotext", [freeTextPdf, "-"], { encoding: "utf8" }).includes("123-45-6789"));
+    const ftInputGray = meanGray(freeTextPdf, annotPx, work);
+    check("negative control: the FreeText box is not dark in the input", ftInputGray > 60, `mean ${ftInputGray.toFixed(1)}`);
+    await c.evalJs("document.getElementById('btn-again').click(); 'ok'");
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), "back to start for FreeText run");
+    await pickFile(c, freeTextPdf);
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'edit' && __blotApi.state.pages === 1"), "FreeText pdf opened");
+    const ftOpen = await c.evalJs(`(() => {
+      const p = __blotApi.session().pages[0];
+      const s = p.suggestions.find((x) => x.pattern === "ssn");
+      return { count: __blotApi.state.suggestions, rect: s ? s.rect : null, scanned: __blotApi.state.scannedPages };
+    })()`);
+    check("FreeText: the sweep suggests the SSN typed into a text box", ftOpen.count >= 1 && !!ftOpen.rect, JSON.stringify(ftOpen));
+    const ftRect = ftOpen.rect || {};
+    check(
+      "FreeText: the suggestion is the whole annotation",
+      ["x", "y", "w", "h"].every((k) => Math.abs(ftRect[k] - annotPx[k]) <= 2),
+      JSON.stringify({ ftRect, annotPx }),
+    );
+    await c.evalJs(`(() => {
+      const s = __blotApi.session().pages[0].suggestions.find((x) => x.pattern === "ssn");
+      if (s) __blotTestHooks.acceptSuggestion(s);
+      return !!s;
+    })()`);
+    await c.evalJs("document.getElementById('btn-export').click(); 'ok'");
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'done'"), "FreeText export done", 60000);
+    check("FreeText: Checked clean", (await c.evalJs("document.getElementById('done-title').textContent")) === "Checked clean");
+    const outFileFt = path.join(work, "freetext-out.pdf");
+    await saveExport(c, outFileFt);
+    check("FreeText: poppler extracts ZERO text from the output", execFileSync("pdftotext", [outFileFt, "-"], { encoding: "utf8" }).trim() === "");
+    const ftGray = meanGray(outFileFt, annotPx, work);
+    check("FreeText: the annotation's spot is inked in the output", ftGray < 60, `mean ${ftGray.toFixed(1)}`);
+
+    const onlyFreeTextPdf = path.join(fixDir, "freetext-only.pdf");
+    writeFileSync(onlyFreeTextPdf, makeFreeTextPdf({ pageText: "" }));
+    await c.evalJs("document.getElementById('btn-again').click(); 'ok'");
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), "back to start for FreeText-only page");
+    await pickFile(c, onlyFreeTextPdf);
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'edit' && __blotApi.state.pages === 1"), "FreeText-only pdf opened");
+    check("FreeText-only page is not called a scan", (await c.evalJs("__blotApi.state.scannedPages.length")) === 0);
 
     const finalErrs = await c.evalJs("(__blotErrors || []).slice(0, 10)");
     check("console stayed clean across every new flow (find-and-cover, pixelate, crop, repeat)", finalErrs.length === 0, JSON.stringify(finalErrs));
