@@ -37,7 +37,7 @@ const announce = (msg) => {
 // ------------------------------------------------------------------ state
 
 // session: { pages: [{canvas, widthPt, heightPt, editor, textItems, scale,
-// suggestions, mosaic}], current, name, exported }
+// transform, suggestions, mosaic}], current, name, exported }
 let session = null;
 let view = null;
 let closeArmed = false;
@@ -123,13 +123,14 @@ async function openBytes(bytes, name = "document.pdf") {
   try {
     for (let n = 1; n <= res.pages; n++) {
       $("render-progress-text").textContent = t("Rendering page {n} of {total}", { n, total: res.pages });
-      const { canvas, widthPt, heightPt, textItems, scale } = await renderPage(res.doc, n);
+      const { canvas, widthPt, heightPt, textItems, scale, transform } = await renderPage(res.doc, n);
       pages.push({
         canvas,
         widthPt,
         heightPt,
         textItems,
         scale,
+        transform,
         mosaic: null,
         suggestions: [],
         editor: createEditor(canvas.width, canvas.height),
@@ -172,9 +173,7 @@ async function openBytes(bytes, name = "document.pdf") {
 function runPatternSweep() {
   let total = 0;
   for (const page of session.pages) {
-    const hits = sweepPatterns(page.textItems, { scale: page.scale, heightPt: page.heightPt }, PATTERN_KEYS).map(
-      (h) => ({ ...h, source: "pattern" }),
-    );
+    const hits = sweepPatterns(page.textItems, page, PATTERN_KEYS).map((h) => ({ ...h, source: "pattern" }));
     page.suggestions.push(...hits);
     total += hits.length;
   }
@@ -192,7 +191,7 @@ function runSearch(query) {
     const page = session.pages[i];
     page.suggestions = page.suggestions.filter((s) => s.source !== "search");
     if (!query) continue;
-    const hits = findMatches(page.textItems, { scale: page.scale, heightPt: page.heightPt }, query).map((h) => ({
+    const hits = findMatches(page.textItems, page, query).map((h) => ({
       ...h,
       source: "search",
     }));

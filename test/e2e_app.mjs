@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
-import { makeTextPdf, makeFormPdf, makeBlankFormPdf, makeSigPdf, makeEncryptedish, makeTwoPageTextPdf, makeImageOnlyPdf } from "./fixtures-pdf.mjs";
+import { makeTextPdf, makeFormPdf, makeBlankFormPdf, makeSigPdf, makeEncryptedish, makeTwoPageTextPdf, makeImageOnlyPdf, makeCropBoxPdf } from "./fixtures-pdf.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const HTTP_PORT = 8961;
@@ -76,6 +76,37 @@ function connect(wsUrl) {
     }),
     close: () => ws.close(),
   };
+}
+
+// The exported PDF, written to disk for poppler.
+async function saveExport(c, file) {
+  const b64 = await c.evalJs(
+    `(() => { const b = __blotApi.session().exported.bytes;
+      let out = ""; for (let i = 0; i < b.length; i += 0x8000) out += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+      return btoa(out); })()`,
+  );
+  const bytes = Buffer.from(b64, "base64");
+  writeFileSync(file, bytes);
+  return bytes;
+}
+
+// Mean gray level over a pixel rect of page 1, rendered by poppler at 150 dpi.
+function meanGray(pdfFile, rect, work) {
+  const prefix = path.join(work, `gray-${path.basename(pdfFile, ".pdf")}`);
+  execFileSync("pdftoppm", ["-r", "150", "-gray", "-cropbox", "-f", "1", "-l", "1", "-singlefile", pdfFile, prefix]);
+  const pgm = readFileSync(`${prefix}.pgm`);
+  const head = pgm.toString("latin1", 0, 64).match(/^P5\s+(\d+)\s+(\d+)\s+(\d+)\s/);
+  const [w, h] = [Number(head[1]), Number(head[2])];
+  const data = pgm.subarray(head[0].length);
+  let sum = 0;
+  let n = 0;
+  for (let y = Math.max(0, Math.floor(rect.y)); y < Math.min(h, Math.ceil(rect.y + rect.h)); y++) {
+    for (let x = Math.max(0, Math.floor(rect.x)); x < Math.min(w, Math.ceil(rect.x + rect.w)); x++) {
+      sum += data[y * w + x];
+      n++;
+    }
+  }
+  return n ? sum / n : 255;
 }
 
 async function pickFile(c, file) {
@@ -505,6 +536,40 @@ async function main() {
     writeFileSync(path.join(SHOTS, "07-repeat.png"), Buffer.from(shot7.result.data, "base64"));
     await c.evalJs("document.getElementById('btn-repeat').click(); 'ok'");
     check("repeat-across-pages: the box landed on both pages", (await c.evalJs("__blotApi.state.boxes")) === 2);
+
+    // ------------------------------------- suggestion on a CropBox page
+    // A CropBox inside the MediaBox once moved every hit 75 px up and
+    // right: accepting it inked blank paper and the SSN stayed readable.
+    const cropBoxPdf = path.join(fixDir, "cropbox.pdf");
+    writeFileSync(cropBoxPdf, makeCropBoxPdf(SECRET));
+    const bboxXml = execFileSync("pdftotext", ["-cropbox", "-bbox", cropBoxPdf, "-"], { encoding: "utf8" });
+    const wm = bboxXml.match(/<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">[^<]*123-45-6789<\/word>/);
+    check("negative control: poppler finds the SSN word on the CropBox input", !!wm, bboxXml);
+    const [wx0, wy0, wx1, wy1] = (wm ? wm.slice(1) : [0, 0, 0, 0]).map((v) => (Number(v) * 150) / 72);
+    // Helvetica advance widths: "SECRET-SSN-" is 6778 of the line's 12448 units.
+    const ssnBox = { x: wx0 + ((wx1 - wx0) * 6778) / 12448, y: wy0, w: ((wx1 - wx0) * 5670) / 12448, h: wy1 - wy0 };
+    const inputGray = meanGray(cropBoxPdf, ssnBox, work);
+    check("negative control: the uncovered SSN fails the ink test in the input", inputGray > 60 && inputGray < 245, `mean ${inputGray.toFixed(1)}`);
+    await c.evalJs("document.getElementById('btn-again').click(); 'ok'");
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), "back to start for CropBox run");
+    await pickFile(c, cropBoxPdf);
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'edit' && __blotApi.state.pages === 1"), "CropBox pdf opened");
+    const accepted = await c.evalJs(`(() => {
+      const p = __blotApi.session().pages[0];
+      const s = p.suggestions.find((x) => x.pattern === "ssn");
+      if (!s) return null;
+      __blotTestHooks.acceptSuggestion(s);
+      return s.rect;
+    })()`);
+    check("CropBox page: the sweep offers the SSN", !!accepted, JSON.stringify(accepted));
+    await c.evalJs("document.getElementById('btn-export').click(); 'ok'");
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'done'"), "CropBox export done", 60000);
+    check("CropBox page: Checked clean", (await c.evalJs("document.getElementById('done-title').textContent")) === "Checked clean");
+    const outFileCb = path.join(work, "cropbox-out.pdf");
+    await saveExport(c, outFileCb);
+    check("CropBox page: poppler extracts ZERO text from the output", execFileSync("pdftotext", [outFileCb, "-"], { encoding: "utf8" }).trim() === "");
+    const ssnGray = meanGray(outFileCb, ssnBox, work);
+    check("CropBox page: the SSN's own spot is inked in the output", ssnGray < 60, `mean ${ssnGray.toFixed(1)} over ${JSON.stringify(ssnBox)}`);
 
     const finalErrs = await c.evalJs("(__blotErrors || []).slice(0, 10)");
     check("console stayed clean across every new flow (find-and-cover, pixelate, crop, repeat)", finalErrs.length === 0, JSON.stringify(finalErrs));

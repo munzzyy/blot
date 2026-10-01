@@ -3,10 +3,10 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { combine, pageTransform, itemRect, subRect, findMatches, sweepPatterns, PATTERNS, isTextless } from "../app/js/detect.js";
+import { pageTransform, itemRect, findMatches, sweepPatterns, PATTERNS, isTextless } from "../app/js/detect.js";
 
 const SCALE = 150 / 72;
-const PAGE = { scale: SCALE, heightPt: 792 };
+const PAGE = { transform: pageTransform(SCALE, 792) };
 
 // A pdf.js text item at PDF-space origin (x, y). Matches real pdf.js
 // shape: item.transform bakes the font size into its own a/d (NOT 1),
@@ -18,12 +18,6 @@ const PAGE = { scale: SCALE, heightPt: 792 };
 function item(str, x, y, fontSize = 12, widthPerChar = 7) {
   return { str, width: str.length * widthPerChar, height: fontSize, transform: [fontSize, 0, 0, fontSize, x, y] };
 }
-
-test("combine matches manual matrix multiplication", () => {
-  const outer = [2, 0, 0, 2, 10, 10];
-  const inner = [1, 0, 0, 1, 3, 4];
-  assert.deepEqual(combine(outer, inner), [2, 0, 0, 2, 2 * 3 + 10, 2 * 4 + 10]);
-});
 
 test("pageTransform flips y and applies scale", () => {
   const m = pageTransform(2, 100);
@@ -51,24 +45,32 @@ test("itemRect places text near the bottom of the page near pixel y = pageHeight
 // silently dropped every accepted suggestion (normRect clamped it to
 // nothing). Numbers below are hand-computed from a real pdf.js item this
 // exact fixture matches: "SECRET-SSN-123-45-6789" at (50, 680) on a
-// 792pt-tall page, rendered at 150/72 scale.
+// 792pt-tall page, rendered at 150/72 scale. The box runs from one font
+// size above the baseline to a quarter of one below it.
 test("itemRect does not double-apply the item's own font-size scale", () => {
-  const page = { scale: 150 / 72, heightPt: 792 };
   const it = { str: "x", width: 149.376, height: 12, transform: [12, 0, 0, 12, 50, 680] };
-  const r = itemRect(it, page);
+  const r = itemRect(it, PAGE);
   assert.ok(Math.abs(r.x - 104.17) < 0.5, JSON.stringify(r));
   assert.ok(Math.abs(r.y - 208.33) < 0.5, JSON.stringify(r));
   assert.ok(Math.abs(r.w - 311.2) < 1, JSON.stringify(r));
-  assert.ok(Math.abs(r.h - 25) < 0.5, JSON.stringify(r));
+  assert.ok(Math.abs(r.h - 31.25) < 0.5, JSON.stringify(r));
 });
 
-test("subRect splits proportionally and never collapses to zero width", () => {
-  const rect = { x: 0, y: 0, w: 100, h: 10 };
-  const r = subRect(rect, 5, 10, 20);
-  assert.equal(r.x, 25);
-  assert.equal(r.w, 25);
-  const zero = subRect(rect, 3, 3, 20);
+test("itemRect splits along the advance and never collapses to zero width", () => {
+  const it = { str: "x", width: 48, height: 12, transform: [12, 0, 0, 12, 0, 792] };
+  const page = { transform: pageTransform(1, 792) };
+  const r = itemRect(it, page, 0.25, 0.75);
+  assert.equal(r.x, 12);
+  assert.equal(r.w, 24);
+  const zero = itemRect(it, page, 0.5, 0.5);
   assert.ok(zero.w >= 1);
+});
+
+test("itemRect follows rotated text: text running up the page gets a tall box", () => {
+  const it = { str: "x", width: 100, height: 10, transform: [0, 10, -10, 0, 300, 200] };
+  const r = itemRect(it, { transform: pageTransform(1, 792) });
+  assert.ok(r.h > r.w * 5, JSON.stringify(r));
+  assert.ok(Math.abs(r.x - 290) < 0.01 && Math.abs(r.y - 492) < 0.01, JSON.stringify(r));
 });
 
 test("findMatches: plain-text search is case-insensitive and finds repeats", () => {

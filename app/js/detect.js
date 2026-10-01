@@ -6,68 +6,42 @@
 // (find-and-cover) and the preset pattern sweep that runs automatically on
 // open.
 
-// Combines two PDF-style 2x3 affine matrices. [a, b, c, d, e, f] maps
-// (x, y) -> (a*x + c*y + e, b*x + d*y + f).
-export function combine(outer, inner) {
-  return [
-    outer[0] * inner[0] + outer[2] * inner[1],
-    outer[1] * inner[0] + outer[3] * inner[1],
-    outer[0] * inner[2] + outer[2] * inner[3],
-    outer[1] * inner[2] + outer[3] * inner[3],
-    outer[0] * inner[4] + outer[2] * inner[5] + outer[4],
-    outer[1] * inner[4] + outer[3] * inner[5] + outer[5],
-  ];
-}
-
+// [a, b, c, d, e, f] maps (x, y) to (a*x + c*y + e, b*x + d*y + f).
 function applyPoint(m, x, y) {
   return [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
 }
 
-// Same transform pdf.js's own TextLayer builder uses to place its DOM
-// spans: unscaled page space (points, y pointing up) flipped to canvas
-// space (y pointing down) and scaled to the same pixel scale renderPage
-// used. Assumes the page's own coordinate origin is (0, 0), which is true
-// for the overwhelming majority of PDFs; a nonzero MediaBox origin would
-// shift every rect by a constant offset, a known limitation.
+// Viewport transform of an unrotated page whose MediaBox starts at 0 0.
+// Real pages use pdf.js's viewport.transform, which also carries a
+// CropBox, an offset origin and /Rotate.
 export function pageTransform(scale, heightPt) {
   return [scale, 0, 0, -scale, 0, scale * heightPt];
 }
 
-// Bounding box of one pdf.js text item, in the same pixel space the page
-// canvas was rendered into. `page` is { scale, heightPt }, the same scale
-// and (unscaled) page height renderPage used.
-//
-// item.width/item.height are NOT vectors in item.transform's own basis:
-// pdf.js already reports them in page-point units (the same units as
-// item.transform's own translation, e/f), so they only need the OUTER
-// page-to-pixel scale applied, never item.transform's own font-size
-// scale (a/b/c/d) a second time. Multiplying them through the full
-// combined matrix double-applies the font size and throws every rect
-// wildly off; item.transform is used here only for the item's ORIGIN
-// (its translation), which the linear part does not affect.
-export function itemRect(item, page) {
-  const outer = pageTransform(page.scale, page.heightPt);
-  const origin = applyPoint(combine(outer, item.transform), 0, 0);
-  const scaleFactor = Math.hypot(outer[0], outer[1]);
-  const w = item.width * scaleFactor;
-  const h = item.height * scaleFactor;
-  // Unrotated text (the overwhelming common case): the baseline start
-  // sits at `origin`, and the glyph box extends rightward by w and
-  // upward (toward smaller pixel y) by h. Rotated text would need the
-  // item's own angle worked in too; a known limitation, same as a
-  // nonzero MediaBox origin.
-  return { x: origin[0], y: origin[1] - h, w, h };
-}
+// How far below the baseline a box reaches, in font sizes: descenders on
+// g, p, y and commas hang there.
+const DESCENT_EM = 0.25;
 
-// A sub-range of an item's own box, splitting its width evenly across its
-// character count. Real glyphs are not evenly spaced, so this is an
-// approximation, not exact metrics; it is why a hit stays a suggestion
-// instead of an auto-applied box.
-export function subRect(rect, start, end, len) {
-  if (len <= 0 || end <= start) return rect;
-  const x0 = rect.x + (rect.w * start) / len;
-  const x1 = rect.x + (rect.w * end) / len;
-  return { x: x0, y: rect.y, w: Math.max(1, x1 - x0), h: rect.h };
+// Pixel bounding box of the stretch [t0, t1] (fractions of the advance) of
+// one pdf.js text item, through the viewport transform the page rendered
+// with. item.width/height are already in page points, so item.transform
+// only gives the origin and directions; its font size must not apply twice.
+export function itemRect(item, page, t0 = 0, t1 = 1) {
+  const [a, b, c, d, e, f] = item.transform;
+  const run = Math.hypot(a, b) || 1;
+  const rise = Math.hypot(c, d) || 1;
+  const xs = [];
+  const ys = [];
+  for (const s of [t0 * item.width, t1 * item.width]) {
+    for (const q of [-DESCENT_EM * item.height, item.height]) {
+      const [x, y] = applyPoint(page.transform, e + (s * a) / run + (q * c) / rise, f + (s * b) / run + (q * d) / rise);
+      xs.push(x);
+      ys.push(y);
+    }
+  }
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  return { x, y, w: Math.max(1, Math.max(...xs) - x), h: Math.max(1, Math.max(...ys) - y) };
 }
 
 // Empty or whitespace-only text items: the sweep and search find nothing here no matter what the page shows.
@@ -91,20 +65,22 @@ export const PATTERNS = {
 export const PATTERN_KEYS = Object.keys(PATTERNS);
 
 // Every place a query (string or RegExp) occurs inside a page's text
-// items. page: { scale, heightPt }, the same scale and page height
-// renderPage used, or rects land in the wrong place.
+// items. page.transform must be the viewport transform renderPage used,
+// or rects land in the wrong place. A match's share of an item is split
+// evenly by character count, which real glyph widths do not follow; it
+// is why a hit stays a suggestion instead of an auto-applied box.
 export function findMatches(items, page, query) {
   const hits = [];
   const isRe = query instanceof RegExp;
   for (const item of items) {
     const str = item.str || "";
     if (!str) continue;
-    const rect = itemRect(item, page);
+    const part = (from, to) => itemRect(item, page, from / str.length, to / str.length);
     if (isRe) {
       const re = new RegExp(query.source, query.flags.includes("g") ? query.flags : query.flags + "g");
       let m;
       while ((m = re.exec(str))) {
-        hits.push({ rect: subRect(rect, m.index, m.index + m[0].length, str.length), text: m[0] });
+        hits.push({ rect: part(m.index, m.index + m[0].length), text: m[0] });
         if (m[0].length === 0) re.lastIndex++;
       }
     } else {
@@ -114,7 +90,7 @@ export function findMatches(items, page, query) {
       let at = 0;
       let idx;
       while ((idx = hay.indexOf(needle, at)) !== -1) {
-        hits.push({ rect: subRect(rect, idx, idx + needle.length, str.length), text: str.slice(idx, idx + needle.length) });
+        hits.push({ rect: part(idx, idx + needle.length), text: str.slice(idx, idx + needle.length) });
         at = idx + needle.length;
       }
     }

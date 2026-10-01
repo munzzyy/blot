@@ -105,7 +105,7 @@ export async function renderPage(doc, pageNum, scale = RENDER_SCALE) {
   await page.render({ canvasContext: ctx, viewport }).promise;
   const base = page.getViewport({ scale: 1 });
   const textContent = await page.getTextContent();
-  return { canvas, widthPt: base.width, heightPt: base.height, textItems: textContent.items, scale };
+  return { canvas, widthPt: base.width, heightPt: base.height, textItems: textContent.items, scale, transform: viewport.transform };
 }
 
 // The proof step: reopen the finished bytes and count everything that

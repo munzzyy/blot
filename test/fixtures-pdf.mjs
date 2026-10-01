@@ -41,6 +41,30 @@ export function makeTextPdf(lines) {
   ]);
 }
 
+const pdfString = (s) => `(${s.replace(/[\\()]/g, "\\$&")})`;
+
+// One line of Helvetica text on a page with whatever geometry the caller
+// gives it: a CropBox, a MediaBox that does not start at 0 0, a /Rotate,
+// or a rotated text matrix.
+function oneLinePdf(text, { box = "/MediaBox [0 0 612 792]", tm = "1 0 0 1 50 700" } = {}) {
+  const content = `BT /F1 12 Tf ${tm} Tm ${pdfString(text)} Tj ET`;
+  return assemble([
+    { id: 1, src: "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" },
+    { id: 2, src: "2 0 obj\n<< /Type /Pages /Kids [ 3 0 R ] /Count 1 >>\nendobj\n" },
+    {
+      id: 3,
+      src: `3 0 obj\n<< /Type /Page /Parent 2 0 R ${box} /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`,
+    },
+    { id: 4, src: "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n" },
+    { id: 5, src: `5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n` },
+  ]);
+}
+
+export const makeCropBoxPdf = (text) => oneLinePdf(text, { box: "/MediaBox [0 0 612 792] /CropBox [36 36 576 756]" });
+export const makeOffsetOriginPdf = (text) => oneLinePdf(text, { box: "/MediaBox [100 100 712 892]", tm: "1 0 0 1 150 800" });
+export const makeRotatedPagePdf = (text) => oneLinePdf(text, { box: "/MediaBox [0 0 612 792] /Rotate 90" });
+export const makeRotatedTextPdf = (text) => oneLinePdf(text, { tm: "0 1 -1 0 300 200" });
+
 // Two pages, same size, for exercising repeat-across-pages: a box drawn
 // on page 1 should be cloneable onto page 2.
 export function makeTwoPageTextPdf(page1Lines, page2Lines) {
