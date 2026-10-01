@@ -12,7 +12,19 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
-import { makeTextPdf, makeFormPdf, makeBlankFormPdf, makeSigPdf, makeEncryptedish, makeTwoPageTextPdf, makeImageOnlyPdf, makeCropBoxPdf } from "./fixtures-pdf.mjs";
+import {
+  makeTextPdf,
+  makeFormPdf,
+  makeBlankFormPdf,
+  makeSigPdf,
+  makeEncryptedish,
+  makeTwoPageTextPdf,
+  makeImageOnlyPdf,
+  makeCropBoxPdf,
+  makeXfaPdf,
+  makeLongPdf,
+  makeGarbagePdf,
+} from "./fixtures-pdf.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const HTTP_PORT = 8961;
@@ -153,6 +165,14 @@ async function main() {
     writeFileSync(sigPdf, makeSigPdf());
     const lockedPdf = path.join(fixDir, "locked.pdf");
     writeFileSync(lockedPdf, makeEncryptedish());
+    const xfaPdf = path.join(fixDir, "xfa.pdf");
+    writeFileSync(xfaPdf, makeXfaPdf());
+    const longPdf = path.join(fixDir, "long-61.pdf");
+    writeFileSync(longPdf, makeLongPdf(61));
+    const limitPdf = path.join(fixDir, "long-60.pdf");
+    writeFileSync(limitPdf, makeLongPdf(60));
+    const garbagePdf = path.join(fixDir, "garbage.pdf");
+    writeFileSync(garbagePdf, makeGarbagePdf());
 
     const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json/new?about:blank`, { method: "PUT" });
     const tab = await res.json();
@@ -180,18 +200,27 @@ async function main() {
     }
 
     // -------------------------------------------------------- refusals
-    for (const [file, label] of [
-      [formPdf, "filled form"],
-      [sigPdf, "digitally signed"],
-      [lockedPdf, "password"],
+    for (const [file, label, expected] of [
+      [formPdf, "filled form", "This PDF is a filled form"],
+      [sigPdf, "digitally signed", "This PDF is digitally signed"],
+      [lockedPdf, "password", "This PDF is password protected"],
+      [xfaPdf, "XFA", "This PDF uses XFA forms"],
+      [longPdf, "61 page", "This PDF is too long"],
+      [garbagePdf, "not-a-PDF", "This file could not be read as a PDF"],
     ]) {
       await pickFile(c, file);
       await waitFor(() => c.evalJs("__blotApi.state.screen === 'refusal'"), `refusal for ${label}`);
       const title = await c.evalJs("document.getElementById('refusal-title').textContent");
-      check(`refuses the ${label} fixture`, title.length > 5, title);
+      check(`refuses the ${label} fixture`, title === expected, title);
       await c.evalJs("document.getElementById('btn-refusal-back').click(); 'ok'");
       await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), "back to start");
     }
+
+    await pickFile(c, limitPdf);
+    await waitFor(() => c.evalJs("__blotApi.state.screen !== 'start' && (__blotApi.state.screen === 'refusal' || __blotApi.state.pages === 60)"), "60 page pdf opened");
+    check("60 pages, the limit itself, opens", (await c.evalJs("__blotApi.state.screen === 'edit' && __blotApi.state.pages")) === 60);
+    await c.evalJs("document.getElementById('btn-close').click(); 'ok'");
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), "back to start after 60 pages");
 
     // The refusal hint was translated once at module load, before the
     // saved language was applied, so Spanish refusals ended in English.

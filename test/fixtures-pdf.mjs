@@ -156,6 +156,51 @@ export const makeFormPdf = () => formPdf("/FT /Tx /V (typed-into-a-form)");
 export const makeBlankFormPdf = () => formPdf("/FT /Tx /V ()");
 export const makeSigPdf = () => formPdf("/FT /Sig");
 
+// A pure XFA form: the catalog says it needs rendering and the AcroForm
+// carries an XFA template but no AcroForm fields of its own.
+export function makeXfaPdf() {
+  const xdp =
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<xdp:xdp xmlns:xdp="http://ns.adobe.com/xdp/">\n' +
+    '<template xmlns="http://www.xfa.org/schema/xfa-template/3.3/">\n' +
+    '<subform name="form1" layout="tb" locale="en_US">\n' +
+    '<pageSet><pageArea name="Page1" id="Page1"><contentArea x="0.25in" y="0.25in" w="8in" h="10.5in"/>' +
+    '<medium stock="letter" short="8.5in" long="11in"/></pageArea></pageSet>\n' +
+    '<subform w="8in" h="10.5in"><field name="Name" w="3in" h="0.3in"><ui><textEdit/></ui></field></subform>\n' +
+    "</subform>\n</template>\n</xdp:xdp>";
+  return assemble([
+    { id: 1, src: "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /NeedsRendering true /AcroForm << /Fields [] /XFA 6 0 R >> >>\nendobj\n" },
+    { id: 2, src: "2 0 obj\n<< /Type /Pages /Kids [ 3 0 R ] /Count 1 >>\nendobj\n" },
+    { id: 3, src: "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R >>\nendobj\n" },
+    { id: 5, src: "5 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" },
+    { id: 6, src: `6 0 obj\n<< /Length ${xdp.length} >>\nstream\n${xdp}\nendstream\nendobj\n` },
+  ]);
+}
+
+// n blank one-inch pages: small enough that the page limit itself renders fast.
+export function makeLongPdf(n) {
+  const kids = Array.from({ length: n }, (_, i) => `${i + 3} 0 R`).join(" ");
+  return assemble([
+    { id: 1, src: "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" },
+    { id: 2, src: `2 0 obj\n<< /Type /Pages /Kids [ ${kids} ] /Count ${n} >>\nendobj\n` },
+    ...Array.from({ length: n }, (_, i) => ({
+      id: i + 3,
+      src: `${i + 3} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 72 72] >>\nendobj\n`,
+    })),
+  ]);
+}
+
+// Bytes that are not a PDF at all, the same every run.
+export function makeGarbagePdf(length = 4096) {
+  const out = new Uint8Array(length);
+  let x = 0x2545;
+  for (let i = 0; i < length; i++) {
+    x = (x * 1103515245 + 12345) >>> 0;
+    out[i] = x >>> 24;
+  }
+  return out;
+}
+
 // An /Encrypt entry in the trailer makes readers demand a password; the
 // dict here is not a valid cipher setup, which is fine: the load must
 // refuse either way.
