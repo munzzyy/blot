@@ -49,8 +49,8 @@ class BlotBridge(private val activity: MainActivity) {
         }
     }
 
-    // Exports land in Downloads, where a zip belongs. MediaStore.Downloads needs Android 10;
-    // below that there is no such folder to write to without asking, so a picker asks instead.
+    // Exports land in Downloads. MediaStore.Downloads needs Android 10; below that there is
+    // no such folder to write to without asking, so a picker asks instead.
     @JavascriptInterface
     fun saveFile(b64: String, mime: String, name: String) {
         val bytes = runCatching { Base64.decode(b64, Base64.DEFAULT) }.getOrNull() ?: return
@@ -81,6 +81,6 @@ class BlotBridge(private val activity: MainActivity) {
 
     private fun sanitize(name: String): String {
         val safe = name.replace(Regex("[^A-Za-z0-9._-]"), "_").take(64)
-        return if (safe.trim('.', '_').isEmpty()) "export.zip" else safe
+        return if (safe.trim('.', '_').isEmpty()) "redacted.pdf" else safe
     }
 }

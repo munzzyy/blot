@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.provider.Settings
 import android.view.Gravity
 import android.view.WindowManager
@@ -27,10 +28,12 @@ import androidx.core.view.setPadding
 import androidx.webkit.WebViewAssetLoader
 import java.io.File
 import java.security.SecureRandom
+import org.json.JSONArray
+import org.json.JSONObject
 
 // One screen: the bundled web app in a WebView on the fixed asset origin.
-// The APK requests no permissions at all; photos come back from the system
-// camera app, and shares stream in over one-shot asset-origin tokens.
+// The APK requests no permissions at all; shared PDFs stream in over
+// one-shot asset-origin tokens.
 class MainActivity : ComponentActivity() {
 
     companion object {
@@ -49,9 +52,10 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var assetLoader: WebViewAssetLoader
 
-    // (token, uri) pairs for shared-in and captured files, RAM only, each
-    // served exactly once.
-    private val shared = mutableListOf<Pair<String, Uri>>()
+    // Shared-in files, RAM only, each served exactly once.
+    private class Shared(val token: String, val uri: Uri, val name: String?)
+
+    private val shared = mutableListOf<Shared>()
 
     // The pending callback for an in-page <input type="file">, deliverable
     // exactly once: a second onShowFileChooser before this fires cancels it.
@@ -69,14 +73,14 @@ class MainActivity : ComponentActivity() {
     // where to put the export through this picker instead. The bytes wait here for the result.
     private var pendingSave: ByteArray? = null
 
-    private val createDocument = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+    private val createDocument = registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
         val bytes = pendingSave
         pendingSave = null
         val ok = uri != null && bytes != null && runCatching {
             contentResolver.openOutputStream(uri)?.use { it.write(bytes) } ?: return@runCatching false
             true
         }.getOrDefault(false)
-        Toast.makeText(this, if (ok) getString(R.string.saved_to_downloads) else getString(R.string.save_failed), Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, if (ok) getString(R.string.saved) else getString(R.string.save_failed), Toast.LENGTH_SHORT).show()
     }
 
     fun saveThroughPicker(bytes: ByteArray, name: String) {
@@ -101,8 +105,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // The screen holds an evidence journal; the app switcher must not
-        // thumbnail it.
+        // The screen shows the document before it is redacted; the app
+        // switcher must not thumbnail it.
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
         // A version Android reports but cannot identify is let through rather than blocked,
@@ -195,15 +199,24 @@ class MainActivity : ComponentActivity() {
     }
 
     fun sharedTokensJson(): String =
-        shared.joinToString(prefix = "[", postfix = "]", separator = ",") { "\"${it.first}\"" }
+        JSONArray().apply {
+            for (s in shared) put(JSONObject().put("token", s.token).apply { s.name?.let { put("name", it) } })
+        }.toString()
 
     private fun addShared(uri: Uri): String? {
         val raw = ByteArray(16)
         SecureRandom().nextBytes(raw)
         val token = raw.joinToString("") { "%02x".format(it) }
-        shared.add(token to uri)
+        shared.add(Shared(token, uri, displayName(uri)))
         return token
     }
+
+    private fun displayName(uri: Uri): String? =
+        runCatching {
+            contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                if (c.moveToFirst()) c.getString(0) else null
+            }
+        }.getOrNull()?.takeIf { it.isNotBlank() }
 
     private fun takeShared(intent: Intent?): Boolean {
         val uris: List<Uri> = when (intent?.action) {
@@ -231,13 +244,11 @@ class MainActivity : ComponentActivity() {
         return true
     }
 
-    // One-shot: a successful serve removes the entry. The capture provider
-    // is our own authority, which is exactly the case where serving must
-    // still work, so only foreign shared_out-style paths are refused above.
+    // One-shot: a successful serve removes the entry.
     private fun serveShared(path: String): WebResourceResponse? {
-        val idx = shared.indexOfFirst { it.first == path }
+        val idx = shared.indexOfFirst { it.token == path }
         if (idx == -1) return null
-        val (_, uri) = shared[idx]
+        val uri = shared[idx].uri
         return runCatching {
             val mime = contentResolver.getType(uri) ?: "application/octet-stream"
             val stream = contentResolver.openInputStream(uri)

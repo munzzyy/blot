@@ -28,7 +28,7 @@ function check(name, cond, detail = "") {
 const BRIDGE_STUB = `window.BlotNative = {
   platform: () => "android",
   version: () => "e2e",
-  sharedTokens: () => JSON.stringify(["e2etoken"]),
+  sharedTokens: () => JSON.stringify([{ token: "e2etoken", name: "lease 2026.pdf" }]),
   shareFile: (b64, mime, name) => { window.__shared = { size: b64.length, mime, name }; },
   saveFile: (b64, mime, name) => { window.__saved = { size: b64.length, mime, name }; },
 };`;
@@ -125,7 +125,22 @@ async function main() {
     await c.evalJs("document.getElementById('btn-share').click(); 'ok'");
     await waitFor(() => c.evalJs("!!window.__shared"), "share handed to bridge");
     const out = await c.evalJs("window.__shared");
-    check("share-out: pdf reaches the bridge", out.size > 1000 && out.mime === "application/pdf" && /^redacted-document-[a-z2-9]{4}\.pdf$/.test(out.name), JSON.stringify(out));
+    check("share-out: pdf reaches the bridge", out.size > 1000 && out.mime === "application/pdf", JSON.stringify(out));
+    check("share-out: the shared file's name carries through", /^redacted-lease-2026-[a-z2-9]{4}\.pdf$/.test(out.name), JSON.stringify(out));
+
+    // A bare token string, the form the wrapper used to send, still opens.
+    await c.evalJs("window.__shared = null; __blotShared(['e2etoken-old']); 'ok'");
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'edit' && __blotApi.session()?.name === 'document.pdf'"), "bare token opened");
+    await c.evalJs(`(() => {
+      const page = __blotApi.session().pages[0];
+      window.__blotTestHooks.addOp(page.editor, "ink", { x: 50, y: 50, w: 300, h: 80 });
+    })()`);
+    await c.evalJs("document.getElementById('btn-export').click(); 'ok'");
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'done'"), "bare token export done", 60000);
+    await c.evalJs("document.getElementById('btn-share').click(); 'ok'");
+    await waitFor(() => c.evalJs("!!window.__shared"), "bare token share handed to bridge");
+    const outOld = await c.evalJs("window.__shared");
+    check("share-in with a bare token still names the export", /^redacted-document-[a-z2-9]{4}\.pdf$/.test(outOld.name), JSON.stringify(outOld));
 
     // translateDom() used to put the web-only "drop one here" back.
     const hintIn = (locale) =>

@@ -824,15 +824,18 @@ async function boot() {
     }
   });
 
-  // Wrapper share-in: one-shot tokens over the asset origin.
+  // Wrapper share-in: one-shot tokens over the asset origin, each {token, name} or a bare token.
   globalThis.__blotShared = async (payload) => {
-    const tokens = Array.isArray(payload) ? payload : payload ? [String(payload)] : [];
-    if (!tokens.length) return;
+    const shared = (Array.isArray(payload) ? payload : payload ? [payload] : [])
+      .map((p) => (typeof p === "string" ? { token: p } : p))
+      .filter((p) => p && typeof p.token === "string" && p.token);
+    if (!shared.length) return;
     try {
-      const res = await fetch(`/shared/${tokens[0]}`);
+      const res = await fetch(`/shared/${shared[0].token}`);
       if (!res.ok) throw new Error(String(res.status));
-      await openBytes(new Uint8Array(await res.arrayBuffer()));
-      if (tokens.length > 1) toast(t("Blot opens one document at a time; the first shared file was opened."));
+      const name = typeof shared[0].name === "string" && shared[0].name ? shared[0].name : undefined;
+      await openBytes(new Uint8Array(await res.arrayBuffer()), name);
+      if (shared.length > 1) toast(t("Blot opens one document at a time; the first shared file was opened."));
     } catch (err) {
       __blotErrors.push(`shared: ${err}`);
       toast(t("Could not read the shared file."));
