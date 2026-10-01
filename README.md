@@ -33,7 +33,11 @@ the cost of certain.
 ## Get it
 
 **Android:** install [blot.apk](https://github.com/munzzyy/blot/releases/latest/download/blot.apk)
-on Android 10 or newer. It's not in the Play Store, so Android will warn
+on Android 9 or newer, with Android System WebView at Chromium 124 or
+later (Android 9 phones with Google Play keep this current by
+themselves; a stock, never-updated WebView is older than that). Below
+that version, Blot shows a plain screen asking you to update WebView
+instead of a blank page. It's not in the Play Store, so Android will warn
 you that it's blocking an install from outside the store; that warning
 exists for apps that misuse permissions, and Blot asks for none. Settings
 offers a one-time "install anyway," which is the only extra step. The
