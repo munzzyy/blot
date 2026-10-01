@@ -3,4 +3,7 @@
     <string name="app_name">Blot</string>
     <string name="saved_to_downloads">Saved to Downloads</string>
     <string name="save_failed">Could not save the file</string>
+    <string name="webview_outdated_title">Android System WebView needs an update</string>
+    <string name="webview_outdated_message">Blot runs inside Android System WebView, and the version on this device is too old to open it. Update it, then open Blot again.</string>
+    <string name="webview_update_button">Update WebView</string>
 </resources>

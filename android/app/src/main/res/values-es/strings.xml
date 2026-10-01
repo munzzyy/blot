@@ -2,4 +2,7 @@
 <resources>
     <string name="saved_to_downloads">Guardado en Descargas</string>
     <string name="save_failed">No se pudo guardar el archivo</string>
+    <string name="webview_outdated_title">Android System WebView necesita una actualización</string>
+    <string name="webview_outdated_message">Blot se ejecuta dentro de Android System WebView, y la versión de este dispositivo es demasiado antigua para abrirlo. Actualízala y vuelve a abrir Blot.</string>
+    <string name="webview_update_button">Actualizar WebView</string>
 </resources>
