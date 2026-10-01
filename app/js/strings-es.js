@@ -66,8 +66,8 @@ export const es = {
   "Remove box": "Quitar recuadro",
   "Flatten & export": "Aplanar y exportar",
   "Flattening…": "Aplanando…",
-  "B adds a box. Tab cycles boxes and suggestions, Enter accepts a focused suggestion. Arrows move, Shift with arrows resizes, Delete removes, PageUp and PageDown switch pages, + and - zoom, 0 fits.":
-    "B añade un recuadro. Tab recorre los recuadros y sugerencias, Enter acepta una sugerencia enfocada. Las flechas mueven, Shift con flechas cambia el tamaño, Suprimir quita, RePág y AvPág cambian de página, + y - hacen zoom, 0 ajusta.",
+  "B adds a box. Tab cycles boxes and suggestions. Enter accepts a focused suggestion and Delete dismisses it. Arrows move a box, Shift with arrows resizes it, Delete removes it, PageUp and PageDown switch pages, + and - zoom, 0 fits.":
+    "B añade un recuadro. Tab recorre los recuadros y sugerencias. Enter acepta una sugerencia enfocada y Suprimir la descarta. Las flechas mueven un recuadro, Shift con flechas cambia su tamaño, Suprimir lo quita, RePág y AvPág cambian de página, + y - hacen zoom, 0 ajusta.",
   "Page {n} of {total}": "Página {n} de {total}",
   "Rendering page {n} of {total}": "Renderizando página {n} de {total}",
   "Rendering failed partway; this document may be too large for this device.":
@@ -114,8 +114,8 @@ export const es = {
   "Keeping {where}": "Conservando {where}",
   "Cover box added at the center. Arrow keys move it, Shift and arrows resize, Delete removes.":
     "Recuadro de cobertura añadido al centro. Las flechas lo mueven, Shift y flechas cambian su tamaño, Suprimir lo quita.",
-  "{kind} \"{text}\", suggestion {n} of {total}: {where}. Press Enter to cover it.":
-    "{kind} \"{text}\", sugerencia {n} de {total}: {where}. Pulsa Enter para taparla.",
+  "{kind} \"{text}\", suggestion {n} of {total}: {where}. Press Enter to cover it or Delete to dismiss it.":
+    "{kind} \"{text}\", sugerencia {n} de {total}: {where}. Pulsa Enter para taparla o Suprimir para descartarla.",
   "Search match": "Coincidencia de búsqueda",
   "SSN-shaped match": "Coincidencia con forma de SSN",
   "Phone-number-shaped match": "Coincidencia con forma de teléfono",
@@ -156,6 +156,7 @@ export const es = {
   "Every result comes from this file's own text layer, not what the page looks like. A scanned page with no text layer will not show results here. Suggestions are dashed outlines: nothing is inked until you accept one.":
     "Cada resultado viene de la propia capa de texto de este archivo, no de cómo se ve la página. Una página escaneada sin capa de texto no mostrará resultados aquí. Las sugerencias son contornos discontinuos: nada se entinta hasta que aceptas una.",
   "Suggestion covered": "Sugerencia cubierta",
+  "Suggestion dismissed": "Sugerencia descartada",
   "Could not cover that suggestion; it was too small to place.": "No se pudo cubrir esa sugerencia; era demasiado pequeña para colocarla.",
   "{total} pages rendered. Pattern sweep found {n} possible match(es); Tab to review. Drag or press B to ink.":
     "{total} páginas renderizadas. El barrido de patrones encontró {n} posible(s) coincidencia(s); usa Tab para revisar. Arrastra o pulsa B para entintar.",
@@ -168,6 +169,8 @@ export const es = {
     "Añadido a {applied} de {total} páginas. {clamped} tenían un tamaño de página distinto y se escalaron para encajar; revísalas.",
 
   "Ink coverage: every covered spot re-rendered dark": "Cobertura de tinta: cada punto cubierto se renderizó oscuro al volver a abrirlo",
+  "Sweep or search matches left uncovered: {count} (page(s) {list})":
+    "Coincidencias del barrido o la búsqueda sin tapar: {count} (página(s) {list})",
   "Ink coverage: a covered spot re-rendered light on page(s) {list}. Do not share this file.":
     "Cobertura de tinta: un punto cubierto se renderizó claro al volver a abrirlo en la(s) página(s) {list}. No compartas este archivo.",
 

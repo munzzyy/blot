@@ -3,7 +3,18 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createEditor, addOp, setCrop, outputRect, cropOffset, repeatAcrossPages, paintOps, padToMinSize, MIN_SIZE } from "../app/js/editor.js";
+import {
+  createEditor,
+  addOp,
+  setCrop,
+  outputRect,
+  cropOffset,
+  repeatAcrossPages,
+  paintOps,
+  padToMinSize,
+  uncoveredSuggestions,
+  MIN_SIZE,
+} from "../app/js/editor.js";
 
 test("cropOffset is (0,0) with no crop", () => {
   const ed = createEditor(100, 200);
@@ -84,4 +95,46 @@ test("padToMinSize clamps to the page edge instead of growing off it", () => {
   const rect = { x: 0, y: 0, w: 1, h: 1 };
   const padded = padToMinSize(rect, 100, 100);
   assert.ok(padded.x >= 0 && padded.y >= 0, JSON.stringify(padded));
+});
+
+// ------------------------------------------------- uncovered suggestions
+
+const hit = { rect: { x: 100, y: 100, w: 80, h: 20 } };
+
+test("uncoveredSuggestions: a suggestion with no ink over it is uncovered", () => {
+  const ed = createEditor(400, 400);
+  addOp(ed, "ink", { x: 10, y: 10, w: 50, h: 50 });
+  assert.deepEqual(uncoveredSuggestions(ed, [hit]), [hit]);
+});
+
+test("uncoveredSuggestions: one ink box that fully holds it covers it", () => {
+  const ed = createEditor(400, 400);
+  addOp(ed, "ink", { x: 98, y: 98, w: 90, h: 30 });
+  assert.equal(uncoveredSuggestions(ed, [hit]).length, 0);
+});
+
+test("uncoveredSuggestions: an ink box that misses a sliver does not", () => {
+  const ed = createEditor(400, 400);
+  addOp(ed, "ink", { x: 100, y: 100, w: 79, h: 20 });
+  assert.equal(uncoveredSuggestions(ed, [hit]).length, 1);
+});
+
+test("uncoveredSuggestions: pixelation is not ink", () => {
+  const ed = createEditor(400, 400);
+  addOp(ed, "pixelate", { x: 90, y: 90, w: 100, h: 40 });
+  assert.equal(uncoveredSuggestions(ed, [hit]).length, 1);
+});
+
+test("uncoveredSuggestions: a crop that drops it entirely covers it", () => {
+  const ed = createEditor(400, 400);
+  setCrop(ed, { x: 0, y: 200, w: 400, h: 200 });
+  assert.equal(uncoveredSuggestions(ed, [hit]).length, 0);
+});
+
+test("uncoveredSuggestions: a crop that keeps part of it needs ink on that part", () => {
+  const ed = createEditor(400, 400);
+  setCrop(ed, { x: 150, y: 0, w: 250, h: 400 });
+  assert.equal(uncoveredSuggestions(ed, [hit]).length, 1);
+  addOp(ed, "ink", { x: 148, y: 98, w: 40, h: 30 });
+  assert.equal(uncoveredSuggestions(ed, [hit]).length, 0);
 });

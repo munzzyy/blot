@@ -132,6 +132,20 @@ export function outputRect(editor) {
   return editor.crop ?? { x: 0, y: 0, w: editor.width, h: editor.height };
 }
 
+// Suggestions whose part inside the exported frame no single ink box fully holds.
+export function uncoveredSuggestions(editor, suggestions) {
+  const frame = outputRect(editor);
+  const inks = paintOps(editor).filter((o) => o.type === "ink").map((o) => o.rect);
+  return suggestions.filter(({ rect: s }) => {
+    const x0 = Math.max(s.x, frame.x);
+    const y0 = Math.max(s.y, frame.y);
+    const x1 = Math.min(s.x + s.w, frame.x + frame.w);
+    const y1 = Math.min(s.y + s.h, frame.y + frame.h);
+    if (x1 <= x0 || y1 <= y0) return false;
+    return !inks.some((r) => r.x <= x0 && r.y <= y0 && r.x + r.w >= x1 && r.y + r.h >= y1);
+  });
+}
+
 // The same integer-snapped crop origin bake() uses. Anything that needs
 // to map a rect from full-canvas pixel space into output-image pixel
 // space (the coverage check) must use this, or it disagrees with what

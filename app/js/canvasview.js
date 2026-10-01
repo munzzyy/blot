@@ -402,7 +402,7 @@ export function createCanvasView(host) {
     if (next.kind === "s") {
       const kind = PATTERN_NAMES[next.item.pattern]?.() ?? t("Search match");
       host.announce(
-        t("{kind} \"{text}\", suggestion {n} of {total}: {where}. Press Enter to cover it.", {
+        t("{kind} \"{text}\", suggestion {n} of {total}: {where}. Press Enter to cover it or Delete to dismiss it.", {
           kind,
           text: next.item.text,
           n: idx,
@@ -461,6 +461,13 @@ export function createCanvasView(host) {
       } else {
         addKeyboardBox();
       }
+      ev.preventDefault();
+      return;
+    }
+    if ((key === "Delete" || key === "Backspace") && focusedSuggestion) {
+      host.dismissSuggestion(focusedSuggestion);
+      focusedSuggestion = null;
+      requestRender();
       ev.preventDefault();
       return;
     }

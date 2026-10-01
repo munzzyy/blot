@@ -3,7 +3,7 @@
 
 import { loadPdf, renderPage, verifyOutput, checkCoverage, MAX_PAGES } from "./pdfdoc.js";
 import { buildPdf } from "./pdfwrite.js";
-import { createEditor, addOp, undo, redo, paintOps, setCrop, cropOffset, repeatAcrossPages, padToMinSize } from "./editor.js";
+import { createEditor, addOp, undo, redo, paintOps, setCrop, cropOffset, repeatAcrossPages, padToMinSize, uncoveredSuggestions } from "./editor.js";
 import { bake, encode, makeMosaic, cropOutRect, bakedOpRect } from "./render.js";
 import { createCanvasView } from "./canvasview.js";
 import { setLocale, resolveLocale, translateDom, t, LOCALE_CHOICES } from "./i18n.js";
@@ -233,6 +233,16 @@ function acceptSuggestion(s) {
   view.render();
 }
 
+function dismissSuggestion(s) {
+  if (!session) return;
+  const page = session.pages[session.current];
+  page.suggestions = page.suggestions.filter((x) => x !== s);
+  announce(t("Suggestion dismissed"));
+  updatePageUi();
+  updateFindUi();
+  view.render();
+}
+
 const toolNote = (tool) => {
   if (tool === "pixelate") {
     return t("Pixelation blurs blocks of pixels together. It is weaker than ink on text: small type or a short string can sometimes be reconstructed from a heavily pixelated block. Use ink for anything you need to be sure is gone.");
@@ -381,7 +391,15 @@ async function runExport() {
     // A failed check means nothing leaves: no exported bytes, no live
     // Share/Save under a screen that says do not share.
     session.exported = clean ? { bytes: pdf, verify, coverage, hash: await hashHex(pdf) } : null;
-    renderProof(verify, coverage, pdf.length);
+    const uncovered = { count: 0, pages: [] };
+    session.pages.forEach((page, i) => {
+      const n = uncoveredSuggestions(page.editor, page.suggestions).length;
+      if (n) {
+        uncovered.count += n;
+        uncovered.pages.push(i + 1);
+      }
+    });
+    renderProof(verify, coverage, pdf.length, uncovered);
     $("btn-share").hidden = !clean;
     $("btn-save").hidden = !clean;
     show("done");
@@ -404,7 +422,8 @@ async function hashHex(bytes) {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function renderProof(verify, coverage, size) {
+// uncovered informs and never blocks: what to hide is the user's call.
+function renderProof(verify, coverage, size, uncovered = { count: 0, pages: [] }) {
   const clean = verify.ok && coverage.ok;
   const badge = $("done-badge");
   badge.textContent = clean ? "✓" : "!";
@@ -431,6 +450,9 @@ function renderProof(verify, coverage, size) {
         ? t("Ink coverage: every covered spot re-rendered dark")
         : t("Ink coverage: a covered spot re-rendered light on page(s) {list}. Do not share this file.", { list: lightPages.join(", ") }),
     );
+  }
+  if (uncovered.count > 0) {
+    lines.push(t("Sweep or search matches left uncovered: {count} (page(s) {list})", { count: uncovered.count, list: uncovered.pages.join(", ") }));
   }
   for (const text of lines) {
     const li = document.createElement("li");
@@ -796,6 +818,7 @@ async function boot() {
     getTool: () => currentTool,
     getSuggestions: () => session?.pages[session.current]?.suggestions ?? [],
     acceptSuggestion,
+    dismissSuggestion,
     onChange: () => {
       if (session) session.exported = null;
       updatePageUi();

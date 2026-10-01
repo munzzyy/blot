@@ -782,6 +782,74 @@ async function main() {
     await waitFor(() => c.evalJs("__blotApi.state.screen === 'edit' && __blotApi.state.pages === 1"), "FreeText-only pdf opened");
     check("FreeText-only page is not called a scan", (await c.evalJs("__blotApi.state.scannedPages.length")) === 0);
 
+    // ------------------------------------------ matches left uncovered
+    // The proof screen used to say Checked clean with no word about a
+    // sweep hit nobody covered. The line informs; it never blocks Share.
+    const UNCOVERED = "Sweep or search matches left uncovered";
+    const openDispute = async (why) => {
+      const screen = await c.evalJs("__blotApi.state.screen");
+      if (screen === "done") await c.evalJs("document.getElementById('btn-again').click(); 'ok'");
+      else if (screen === "edit") {
+        await c.evalJs("document.getElementById('btn-close').click(); 'ok'");
+        if ((await c.evalJs("__blotApi.state.screen")) === "edit") await c.evalJs("document.getElementById('btn-close').click(); 'ok'");
+      }
+      await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), `back to start: ${why}`);
+      await pickFile(c, textPdf);
+      await waitFor(() => c.evalJs("__blotApi.state.screen === 'edit' && __blotApi.state.pages === 1"), `dispute.pdf open: ${why}`);
+    };
+    const exportFacts = async (why) => {
+      await c.evalJs("document.getElementById('btn-export').click(); 'ok'");
+      await waitFor(() => c.evalJs("__blotApi.state.screen === 'done'"), `export done: ${why}`, 60000);
+      return c.evalJs(`({
+        title: document.getElementById("done-title").textContent,
+        share: !document.getElementById("btn-share").hidden,
+        facts: document.getElementById("done-facts").textContent,
+      })`);
+    };
+    const ssnSuggestion = `__blotApi.session().pages[0].suggestions.find((x) => x.pattern === "ssn")`;
+
+    await openDispute("ink that misses the SSN");
+    await c.evalJs(`__blotTestHooks.addOp(__blotApi.session().pages[0].editor, "ink", { x: 100, y: 100, w: 300, h: 30 }); 'ok'`);
+    const missed = await exportFacts("ink that misses the SSN");
+    check("uncovered match: the proof screen says so and names the page", missed.facts.includes(`${UNCOVERED}: 1 (page(s) 1)`), missed.facts);
+    check("uncovered match: still Checked clean with Share offered", missed.title === "Checked clean" && missed.share, JSON.stringify(missed));
+
+    await openDispute("accepted suggestion");
+    await c.evalJs(`(() => { const s = ${ssnSuggestion}; if (s) __blotTestHooks.acceptSuggestion(s); return !!s; })()`);
+    const acceptedFacts = await exportFacts("accepted suggestion");
+    check("accepted match: no uncovered line", !acceptedFacts.facts.includes(UNCOVERED), acceptedFacts.facts);
+
+    await openDispute("ink drawn over the SSN by hand");
+    const byHand = await c.evalJs(`(() => {
+      const s = ${ssnSuggestion};
+      if (!s) return false;
+      const r = s.rect;
+      return !!__blotTestHooks.addOp(__blotApi.session().pages[0].editor, "ink", { x: r.x - 2, y: r.y - 2, w: r.w + 4, h: r.h + 4 });
+    })()`);
+    const byHandFacts = await exportFacts("ink drawn over the SSN by hand");
+    check("match inked by hand: no uncovered line", byHand && !byHandFacts.facts.includes(UNCOVERED), JSON.stringify({ byHand, facts: byHandFacts.facts }));
+
+    await openDispute("dismissed suggestion");
+    const dismissed = await c.evalJs(`(() => {
+      const cv = document.getElementById("canvas");
+      cv.focus();
+      cv.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true }));
+      cv.dispatchEvent(new KeyboardEvent("keydown", { key: "Delete", bubbles: true, cancelable: true }));
+      return { left: __blotApi.state.suggestions, said: document.getElementById("sr-live").textContent };
+    })()`);
+    check("Delete dismisses a focused suggestion", dismissed.left === 0, JSON.stringify(dismissed));
+    check("a dismissed suggestion is announced", dismissed.said.includes("Suggestion dismissed"), JSON.stringify(dismissed));
+    const dismissedFacts = await exportFacts("dismissed suggestion");
+    check("dismissed match: no uncovered line", !dismissedFacts.facts.includes(UNCOVERED), dismissedFacts.facts);
+
+    await openDispute("crop that drops the SSN");
+    const croppedAway = await c.evalJs(`(() => {
+      const editor = __blotApi.session().pages[0].editor;
+      return !!__blotTestHooks.setCrop(editor, { x: 0, y: 400, w: editor.width, h: editor.height - 400 });
+    })()`);
+    const croppedFacts = await exportFacts("crop that drops the SSN");
+    check("match cropped away: no uncovered line", croppedAway && !croppedFacts.facts.includes(UNCOVERED), JSON.stringify({ croppedAway, facts: croppedFacts.facts }));
+
     const finalErrs = await c.evalJs("(__blotErrors || []).slice(0, 10)");
     check("console stayed clean across every new flow (find-and-cover, pixelate, crop, repeat)", finalErrs.length === 0, JSON.stringify(finalErrs));
 
