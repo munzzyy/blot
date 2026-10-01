@@ -1,14 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.4.2
 
-- Android: minSdk lowered to 9. Below Chromium 124 the page cannot run at
-  all (private class fields and other syntax pdf.js needs), so a native
-  screen now asks you to update Android System WebView instead of
-  showing a blank one, with a button to its store page or app info.
-- Android: saving the redacted PDF below Android 10 (where there is no
-  Downloads collection to write to without asking) now goes through the
-  system file picker instead of silently failing.
+- Android: runs on Android 9. A redacted PDF is saved there through the
+  system file picker, since Android 9 has no Downloads folder an app can
+  write to without asking.
+- Android: with an Android System WebView older than Chromium 109, Blot
+  shows a plain screen asking you to update it, with a button to its store
+  page, instead of a blank page. Phones with Google Play keep it current.
 
 ## 0.4.1
 
