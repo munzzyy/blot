@@ -1,0 +1,1 @@
+Funciona en Android 9, y allí guarda a través del selector de archivos del sistema. Con un WebView anterior a Chromium 109, Blot te pide que lo actualices en vez de mostrar una página en blanco. Tocar para elegir un PDF ya abre el selector, y los WebView anteriores a 124 ya pueden abrir y mostrar documentos. Icono nuevo. La licencia ahora es GPL-3.0-or-later.

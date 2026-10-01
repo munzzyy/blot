@@ -15,7 +15,7 @@ jobs:
       - name: tools the suites cross-check against
         run: |
           sudo apt-get update -q
-          sudo apt-get install -qy exiftool poppler-utils
+          sudo apt-get install -qy poppler-utils
       - name: vendored pdf.js checksums
         run: cd app/vendor/pdfjs && sha256sum -c SHA256SUMS
       - name: unit tests
@@ -81,7 +81,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - name: build debug apk
+      - name: build the unsigned release apk
         run: cd android && ./gradlew --no-daemon assembleRelease
       - name: assert zero permissions
         run: |

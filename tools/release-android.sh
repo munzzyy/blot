@@ -14,7 +14,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-KEYSTORE="${MAGPIE_KEYSTORE:-$HOME/keys/blot-upload.jks}"
+KEYSTORE="${BLOT_KEYSTORE:-$HOME/keys/blot-upload.jks}"
 ALIAS=blot-upload
 SDK="${ANDROID_HOME:-$HOME/Android/Sdk}"
 SIGN_TOOLS_VERSION=34.0.0

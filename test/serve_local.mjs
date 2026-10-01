@@ -15,7 +15,8 @@ const MIME = {
   ".css": "text/css; charset=utf-8",
   ".svg": "image/svg+xml",
   ".png": "image/png",
-  ".jpg": "application/pdf",
+  ".jpg": "image/jpeg",
+  ".pdf": "application/pdf",
   ".webp": "image/webp",
   ".webmanifest": "application/manifest+json",
   ".json": "application/json",
@@ -35,7 +36,7 @@ createServer(async (req, res) => {
       return;
     }
     const full = path.join(ROOT, file);
-    if (!full.startsWith(ROOT)) throw new Error("traversal");
+    if (full !== ROOT && !full.startsWith(ROOT + path.sep)) throw new Error("traversal");
     const body = await readFile(full);
     res.writeHead(200, {
       "content-type": MIME[path.extname(full)] || "application/octet-stream",

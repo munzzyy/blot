@@ -22,6 +22,8 @@ targets:
       path: Info.plist
       properties:
         CFBundleDisplayName: Blot
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
@@ -33,6 +35,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.munzzyy.blot
+        # tools/check-clean.sh holds these to package.json and gradle versionCode.
+        MARKETING_VERSION: "0.4.3"
+        CURRENT_PROJECT_VERSION: 403
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.9"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

@@ -1,0 +1,1 @@
+Android 9 works now, and saves through the system file picker there. On a WebView older than Chromium 109, Blot asks you to update it instead of showing a blank page. Tapping to choose a PDF now opens the picker, and WebViews older than 124 can open and render documents. A new icon. The license is now GPL-3.0-or-later.
