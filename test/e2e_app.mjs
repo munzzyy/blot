@@ -193,6 +193,23 @@ async function main() {
       await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), "back to start");
     }
 
+    // The refusal hint was translated once at module load, before the
+    // saved language was applied, so Spanish refusals ended in English.
+    await c.evalJs("localStorage.setItem('blot-locale', 'es'); 'ok'");
+    await c.send("Page.reload");
+    await waitFor(() => c.evalJs("!!window.__blotApi && __blotApi.state.screen === 'start' && document.documentElement.lang === 'es'"), "Spanish start screen");
+    await pickFile(c, formPdf);
+    await waitFor(() => c.evalJs("__blotApi.state.screen === 'refusal'"), "Spanish refusal");
+    const esBody = await c.evalJs("document.getElementById('refusal-body').textContent");
+    check(
+      "Spanish refusal: the phone steps are in Spanish too",
+      esBody.includes("En el móvil: ábrelo en tu visor de PDF") && !esBody.includes("On a phone"),
+      esBody,
+    );
+    await c.evalJs("localStorage.removeItem('blot-locale'); 'ok'");
+    await c.send("Page.reload");
+    await waitFor(() => c.evalJs("!!window.__blotApi && __blotApi.state.screen === 'start' && document.documentElement.lang === 'en'"), "English start screen again");
+
     // A blank AcroForm field (no /V value) has nothing outside the page
     // stream to lose; it must open into the editor like any other PDF,
     // not get refused as though it were filled.

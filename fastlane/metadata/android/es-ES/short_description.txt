@@ -1,1 +1,1 @@
-Redaccion que destruye lo que cubre. Aplana a pixeles, tinta, y reverifica: cero texto extraible.
+Tachado que destruye lo que cubre. Solo píxeles, cero texto extraíble.

@@ -127,6 +127,19 @@ async function main() {
     const out = await c.evalJs("window.__shared");
     check("share-out: pdf reaches the bridge", out.size > 1000 && out.mime === "application/pdf" && /^redacted-document-[a-z2-9]{4}\.pdf$/.test(out.name), JSON.stringify(out));
 
+    // translateDom() used to put the web-only "drop one here" back.
+    const hintIn = (locale) =>
+      c.evalJs(`(() => {
+        const pick = document.getElementById("locale-pick");
+        pick.value = ${JSON.stringify(locale)};
+        pick.dispatchEvent(new Event("change"));
+        return document.getElementById("drop-hint").textContent;
+      })()`);
+    const esHint = await hintIn("es");
+    check("drop hint stays the share hint in Spanish", esHint === "o comparte un PDF a Blot desde cualquier app", esHint);
+    const enHint = await hintIn("en");
+    check("drop hint stays the share hint back in English", enHint === "or share a PDF to Blot from any app", enHint);
+
     const errs = await c.evalJs("(__blotErrors || []).slice(0, 5)");
     check("console clean", errs.length === 0, JSON.stringify(errs));
     c.close();

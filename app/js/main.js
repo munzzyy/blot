@@ -90,13 +90,14 @@ function show(name, focusReturn) {
   if (name === "start" && focusReturn) $("dropzone").focus({ preventScroll: true });
 }
 
-const PRINT_TO_PDF_HINT = t("On a phone: open it in your PDF viewer, use Share or the menu, choose Print, then pinch open the print preview and share or save THAT as a PDF.");
+// A function, not a constant: the locale is set in boot(), after this module loads.
+const printToPdfHint = () => t("On a phone: open it in your PDF viewer, use Share or the menu, choose Print, then pinch open the print preview and share or save THAT as a PDF.");
 
 const REFUSALS = {
   encrypted: () => [t("This PDF is password protected"), t("Blot will not guess at partial decryption. Remove the password in your PDF viewer first, then bring the unlocked file here.")],
-  forms: () => [t("This PDF is a filled form"), `${t("Form answers live outside the page image, where flattening can silently lose or miss them. Print the form to a new PDF from your viewer, check the result shows everything, then redact that file here.")} ${PRINT_TO_PDF_HINT}`],
+  forms: () => [t("This PDF is a filled form"), `${t("Form answers live outside the page image, where flattening can silently lose or miss them. Print the form to a new PDF from your viewer, check the result shows everything, then redact that file here.")} ${printToPdfHint()}`],
   signed: () => [t("This PDF is digitally signed"), t("Flattening would destroy the signature, and a redactor should not quietly break the one thing this file was issued for. If you accept losing the signature, print to PDF first and bring that.")],
-  xfa: () => [t("This PDF uses XFA forms"), `${t("XFA content renders unreliably outside Adobe tools, and redacting what you cannot fully see is how leaks happen. Print it to a regular PDF first.")} ${PRINT_TO_PDF_HINT}`],
+  xfa: () => [t("This PDF uses XFA forms"), `${t("XFA content renders unreliably outside Adobe tools, and redacting what you cannot fully see is how leaks happen. Print it to a regular PDF first.")} ${printToPdfHint()}`],
   toolong: () => [t("This PDF is too long"), t("Blot handles up to {max} pages at a time, because every page is held in memory as an image. Split the document and redact the parts: most PDF viewers, including the Files app on a phone, can export a page range as a new PDF.", { max: MAX_PAGES })],
   unreadable: () => [t("This file could not be read as a PDF"), t("It may be damaged, or not really a PDF. Nothing was processed.")],
 };
@@ -750,7 +751,16 @@ function buildLocalePicker() {
     } catch {}
     setLocale(resolveLocale(select.value));
     translateDom();
+    wrapperDropHint();
   });
+}
+
+// Set after translateDom() so a language change does not put the web hint back.
+function wrapperDropHint() {
+  if (!isWrapper()) return;
+  // Android accepts a PDF shared in from any app; iOS has no equivalent
+  // yet, so it gets the same in-app file picker a web visitor has.
+  $("drop-hint").textContent = globalThis.BlotNative ? t("or share a PDF to Blot from any app") : t("or open one from Files");
 }
 
 async function boot() {
@@ -765,9 +775,7 @@ async function boot() {
   const native = globalThis.BlotNative;
   if (isWrapper()) {
     for (const node of document.querySelectorAll(".web-only")) node.remove();
-    // Android accepts a PDF shared in from any app; iOS has no equivalent
-    // yet, so it gets the same in-app file picker a web visitor has.
-    $("drop-hint").textContent = native ? t("or share a PDF to Blot from any app") : t("or open one from Files");
+    wrapperDropHint();
   } else if ("serviceWorker" in navigator && location.protocol === "https:") {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
