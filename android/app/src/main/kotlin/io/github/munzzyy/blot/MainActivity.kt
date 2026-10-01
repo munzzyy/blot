@@ -1,11 +1,19 @@
 package io.github.munzzyy.blot
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.view.Gravity
 import android.view.WindowManager
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -15,6 +23,7 @@ import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.setPadding
 import androidx.webkit.WebViewAssetLoader
 import java.io.File
 import java.security.SecureRandom
@@ -28,6 +37,11 @@ class MainActivity : ComponentActivity() {
         const val ASSET_HOST = "appassets.androidplatform.net"
         const val START_URL = "https://$ASSET_HOST/index.html"
         const val AUTHORITY = "io.github.munzzyy.blot.files"
+
+        // The oldest WebView the open, ink and export flow was proven on; Chromium 66 cannot parse the page.
+        const val MIN_WEBVIEW_MAJOR = 109
+        private const val PREFS = "blot"
+        private const val KEY_ANDROID9_NOTED = "android9_noted"
     }
 
     lateinit var webView: WebView
@@ -51,7 +65,39 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    // MediaStore.Downloads needs Android 10; below that, BlotBridge.saveFile asks the person
+    // where to put the export through this picker instead. The bytes wait here for the result.
+    private var pendingSave: ByteArray? = null
+
+    private val createDocument = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        val bytes = pendingSave
+        pendingSave = null
+        val ok = uri != null && bytes != null && runCatching {
+            contentResolver.openOutputStream(uri)?.use { it.write(bytes) } ?: return@runCatching false
+            true
+        }.getOrDefault(false)
+        Toast.makeText(this, if (ok) getString(R.string.saved_to_downloads) else getString(R.string.save_failed), Toast.LENGTH_SHORT).show()
+    }
+
+    fun saveThroughPicker(bytes: ByteArray, name: String) {
+        pendingSave = bytes
+        createDocument.launch(name)
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
+    private fun noteAndroid9Once() {
+        if (Build.VERSION.SDK_INT != Build.VERSION_CODES.P) return
+        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_ANDROID9_NOTED, false)) return
+        val noted = { prefs.edit().putBoolean(KEY_ANDROID9_NOTED, true).apply() }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.android9_title)
+            .setMessage(R.string.android9_body)
+            .setPositiveButton(android.R.string.ok) { _, _ -> noted() }
+            .setOnCancelListener { noted() }
+            .show()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -59,8 +105,17 @@ class MainActivity : ComponentActivity() {
         // thumbnail it.
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
+        // A version Android reports but cannot identify is let through rather than blocked,
+        // since only a confirmed too-old WebView is one the page is known not to run on.
+        val webViewMajor = webViewMajorVersion()
+        if (webViewMajor != null && webViewMajor < MIN_WEBVIEW_MAJOR) {
+            showWebViewOutdated()
+            return
+        }
+
         webView = WebView(this)
         setContentView(webView)
+        noteAndroid9Once()
 
         assetLoader = WebViewAssetLoader.Builder()
             .addPathHandler("/shared/") { path -> serveShared(path) }
@@ -189,6 +244,52 @@ class MainActivity : ComponentActivity() {
             shared.removeAt(idx)
             WebResourceResponse(mime, null, stream)
         }.getOrNull()
+    }
+
+    /** The Chromium major version of the WebView Android has picked, or null when it will not say. */
+    private fun webViewMajorVersion(): Int? =
+        runCatching { WebView.getCurrentWebViewPackage()?.versionName }.getOrNull()
+            ?.substringBefore('.')?.toIntOrNull()
+
+    /** A plain native screen, since the page itself cannot run to say this on its own. */
+    private fun showWebViewOutdated() {
+        val packageName = runCatching { WebView.getCurrentWebViewPackage()?.packageName }.getOrNull()
+            ?: "com.google.android.webview"
+        val pad = (32 * resources.displayMetrics.density).toInt()
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(pad)
+        }
+        val title = TextView(this).apply {
+            text = getString(R.string.webview_outdated_title)
+            textSize = 20f
+            gravity = Gravity.CENTER
+        }
+        val message = TextView(this).apply {
+            text = getString(R.string.webview_outdated_message)
+            gravity = Gravity.CENTER
+            setPadding(0, pad / 2, 0, pad)
+        }
+        val button = Button(this).apply {
+            text = getString(R.string.webview_update_button)
+            setOnClickListener { openWebViewUpdate(packageName) }
+        }
+        layout.addView(title)
+        layout.addView(message)
+        layout.addView(button)
+        setContentView(layout)
+    }
+
+    /** The store page for [packageName] where one is installed, else the system's own app-info page for it. */
+    private fun openWebViewUpdate(packageName: String) {
+        val store = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName"))
+        val opened = runCatching { startActivity(store) }.isSuccess
+        if (!opened) {
+            runCatching {
+                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
+            }
+        }
     }
 
     override fun onDestroy() {

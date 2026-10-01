@@ -2,4 +2,9 @@
 <resources>
     <string name="saved_to_downloads">Guardado en Descargas</string>
     <string name="save_failed">No se pudo guardar el archivo</string>
+    <string name="webview_outdated_title">Android System WebView necesita una actualización</string>
+    <string name="webview_outdated_message">Blot se ejecuta dentro de Android System WebView, y la versión de este dispositivo es demasiado antigua para abrirlo. Actualízala y vuelve a abrir Blot.</string>
+    <string name="webview_update_button">Actualizar WebView</string>
+    <string name="android9_title">Este teléfono usa Android 9</string>
+    <string name="android9_body">Las últimas correcciones de seguridad de Google para Android 9 salieron en enero de 2022, así que los fallos de Android encontrados desde entonces siguen abiertos en este teléfono. Blot tacha en el teléfono y no envía tu documento a ningún sitio, pero una app que entre por uno de esos fallos podría leer lo que hay en la pantalla o en tus archivos.</string>
 </resources>

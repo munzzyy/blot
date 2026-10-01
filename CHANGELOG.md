@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.4.2
+
+- Android: runs on Android 9. A redacted PDF is saved there through the
+  system file picker, since Android 9 has no Downloads folder an app can
+  write to without asking.
+- Android: with an Android System WebView older than Chromium 109, Blot
+  shows a plain screen asking you to update it, with a button to its store
+  page, instead of a blank page. Phones with Google Play keep it current.
+- Android: on Android 9, Blot says once that Google's last security fixes
+  for it came out in January 2022.
 
 ## 0.4.1
 

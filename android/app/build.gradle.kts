@@ -9,10 +9,10 @@ android {
 
     defaultConfig {
         applicationId = "io.github.munzzyy.blot"
-        minSdk = 29
+        minSdk = 28
         targetSdk = 36
-        versionCode = 401
-        versionName = "0.4.1"
+        versionCode = 402
+        versionName = "0.4.2"
     }
 
     buildTypes {

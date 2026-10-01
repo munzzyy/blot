@@ -3,4 +3,9 @@
     <string name="app_name">Blot</string>
     <string name="saved_to_downloads">Saved to Downloads</string>
     <string name="save_failed">Could not save the file</string>
+    <string name="webview_outdated_title">Android System WebView needs an update</string>
+    <string name="webview_outdated_message">Blot runs inside Android System WebView, and the version on this device is too old to open it. Update it, then open Blot again.</string>
+    <string name="webview_update_button">Update WebView</string>
+    <string name="android9_title">This phone runs Android 9</string>
+    <string name="android9_body">Google\'s last security fixes for Android 9 came out in January 2022, so holes in Android found since then stay open on this phone. Blot redacts on the phone and sends your document nowhere, but an app that gets in through one of those holes could still read what is on the screen or in your files.</string>
 </resources>
