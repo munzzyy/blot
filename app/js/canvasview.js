@@ -6,10 +6,20 @@ import { addOp, hitOp, moveOp, resizeOp, removeOp, paintOps, normRect } from "./
 import { t } from "./i18n.js";
 
 // focusedSuggestion is declared near the keyboard section below; render()
-// reads it to draw the focused code outline solid and thick.
+// reads it to draw the focused suggestion's outline solid and thick.
 
 const HANDLE_PX = 12;
 const INK = "#0e0c0a";
+
+// What a sweep hit looks like, keyed by detect.js PATTERNS.
+const PATTERN_NAMES = {
+  ssn: () => t("SSN-shaped match"),
+  phone: () => t("Phone-number-shaped match"),
+  email: () => t("Email-shaped match"),
+  card: () => t("Card-number-shaped match"),
+  iban: () => t("IBAN-shaped match"),
+  account: () => t("Account-number-shaped match"),
+};
 
 export function createCanvasView(host) {
   const { canvas, wrap } = host;
@@ -362,8 +372,8 @@ export function createCanvasView(host) {
     });
   }
 
-  // Tab cycles code suggestions first, then boxes, so nothing on the canvas
-  // is pointer-only. Focus is the module's selected/focusedSuggestion pair.
+  // Tab cycles suggestions first, then boxes, so nothing on the canvas is
+  // pointer-only. Focus is the module's selected/focusedSuggestion pair.
   let focusedSuggestion = null;
 
   // Returns false when the cycle walks off either end, so Tab can leave
@@ -390,8 +400,11 @@ export function createCanvasView(host) {
     selected = next.kind === "o" ? next.item : null;
     const idx = ring.indexOf(next) + 1;
     if (next.kind === "s") {
+      const kind = PATTERN_NAMES[next.item.pattern]?.() ?? t("Search match");
       host.announce(
-        t("Code suggestion {n} of {total}: {where}. Press Enter to cover it.", {
+        t("{kind} \"{text}\", suggestion {n} of {total}: {where}. Press Enter to cover it.", {
+          kind,
+          text: next.item.text,
           n: idx,
           total: ring.length,
           where: describeRect(next.item.rect),

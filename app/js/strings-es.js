@@ -114,8 +114,15 @@ export const es = {
   "Keeping {where}": "Conservando {where}",
   "Cover box added at the center. Arrow keys move it, Shift and arrows resize, Delete removes.":
     "Recuadro de cobertura añadido al centro. Las flechas lo mueven, Shift y flechas cambian su tamaño, Suprimir lo quita.",
-  "Code suggestion {n} of {total}: {where}. Press Enter to cover it.":
-    "Sugerencia de código {n} de {total}: {where}. Pulsa Enter para taparla.",
+  "{kind} \"{text}\", suggestion {n} of {total}: {where}. Press Enter to cover it.":
+    "{kind} \"{text}\", sugerencia {n} de {total}: {where}. Pulsa Enter para taparla.",
+  "Search match": "Coincidencia de búsqueda",
+  "SSN-shaped match": "Coincidencia con forma de SSN",
+  "Phone-number-shaped match": "Coincidencia con forma de teléfono",
+  "Email-shaped match": "Coincidencia con forma de correo",
+  "Card-number-shaped match": "Coincidencia con forma de número de tarjeta",
+  "IBAN-shaped match": "Coincidencia con forma de IBAN",
+  "Account-number-shaped match": "Coincidencia con forma de número de cuenta",
   "Crop draft covers the middle {pct}% of the image. Arrows move it, Shift and arrows resize, then Apply crop.":
     "El borrador de recorte cubre el {pct}% central de la imagen. Las flechas lo mueven, Shift y flechas cambian su tamaño, luego Aplicar recorte.",
   "{tool} box added": "Recuadro de {tool} añadido",

@@ -338,6 +338,17 @@ async function main() {
     const sweptCount = await c.evalJs("__blotApi.state.suggestions");
     check("pattern sweep found the embedded SSN-shaped run on open", sweptCount >= 1, String(sweptCount));
 
+    const spoken = await c.evalJs(`(() => {
+      const cv = document.getElementById("canvas");
+      cv.focus();
+      cv.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true }));
+      const said = document.getElementById("sr-live").textContent;
+      cv.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+      return said;
+    })()`);
+    check("screen reader hears what a suggestion matched", spoken.includes("123-45-6789") && spoken.includes("SSN-shaped match"), spoken);
+    check("screen reader no longer hears 'Code suggestion'", !spoken.includes("Code suggestion"), spoken);
+
     // Free-text search through the real find bar UI.
     await c.evalJs(`(() => {
       document.getElementById("btn-find-toggle").click();
