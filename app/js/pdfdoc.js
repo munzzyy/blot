@@ -107,7 +107,9 @@ export async function renderPage(doc, pageNum, scale = RENDER_SCALE) {
   const base = page.getViewport({ scale: 1 });
   const textContent = await page.getTextContent();
   const textItems = [...textContent.items, ...annotationItems(await page.getAnnotations(), viewport.transform)];
-  return { canvas, widthPt: base.width, heightPt: base.height, textItems, scale, transform: viewport.transform };
+  // layerItems is the page's own text layer. A scanned page with a text box
+  // typed over it still has none, and the sweep still cannot see the image.
+  return { canvas, widthPt: base.width, heightPt: base.height, textItems, layerItems: textContent.items, scale, transform: viewport.transform };
 }
 
 // The proof step: reopen the finished bytes and count everything that

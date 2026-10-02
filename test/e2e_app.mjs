@@ -780,7 +780,7 @@ async function main() {
     await waitFor(() => c.evalJs("__blotApi.state.screen === 'start'"), "back to start for FreeText-only page");
     await pickFile(c, onlyFreeTextPdf);
     await waitFor(() => c.evalJs("__blotApi.state.screen === 'edit' && __blotApi.state.pages === 1"), "FreeText-only pdf opened");
-    check("FreeText-only page is not called a scan", (await c.evalJs("__blotApi.state.scannedPages.length")) === 0);
+    check("FreeText-only page still counts as a scan: no text layer under the box", (await c.evalJs("__blotApi.state.scannedPages.length")) === 1);
 
     // ------------------------------------------ matches left uncovered
     // The proof screen used to say Checked clean with no word about a

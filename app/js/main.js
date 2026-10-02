@@ -126,12 +126,13 @@ async function openBytes(bytes, name = "document.pdf") {
   try {
     for (let n = 1; n <= res.pages; n++) {
       $("render-progress-text").textContent = t("Rendering page {n} of {total}", { n, total: res.pages });
-      const { canvas, widthPt, heightPt, textItems, scale, transform } = await renderPage(res.doc, n);
+      const { canvas, widthPt, heightPt, textItems, layerItems, scale, transform } = await renderPage(res.doc, n);
       pages.push({
         canvas,
         widthPt,
         heightPt,
         textItems,
+        layerItems,
         scale,
         transform,
         mosaic: null,
@@ -148,7 +149,7 @@ async function openBytes(bytes, name = "document.pdf") {
     $("render-progress").hidden = true;
     res.task.destroy().catch(() => {});
   }
-  const scannedPages = pages.map((p, i) => (isTextless(p.textItems) ? i + 1 : null)).filter((n) => n);
+  const scannedPages = pages.map((p, i) => (isTextless(p.layerItems) ? i + 1 : null)).filter((n) => n);
   session = { pages, current: 0, name, exported: null, scannedPages };
   const swept = runPatternSweep();
   setTool("ink");
