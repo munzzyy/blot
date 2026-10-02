@@ -90,16 +90,14 @@ and exactly how the wrapper differs from the Android app:
 
 ## Roadmap
 
-What is left needs someone other than this repo's code: a release, a store
-review, or a native speaker.
+What is left needs someone other than this repo's code: a store review or
+a native speaker.
 
-- A release with everything under Unreleased in [CHANGELOG.md](CHANGELOG.md).
-  Until it is cut, the APK is still 0.4.3.
 - F-Droid. Blot is not in it yet. The store text and the per-version
   changelogs it reads are in `fastlane/`; the submission to fdroiddata and
   its review are still ahead.
-- The sha256 and signing certificate lines in the release notes. v0.3.0 has
-  them; the v0.4.0 to v0.4.3 notes still need them added.
+- The sha256 and signing certificate lines in the release notes. v0.3.0 and
+  v0.5.0 have them; the v0.4.0 to v0.4.3 notes still need them added.
 - A native speaker's read of the Spanish UI and store text. The move from
   "redactar", which means to write, to "tachar" was not checked by one.
 

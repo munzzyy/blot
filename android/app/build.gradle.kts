@@ -11,8 +11,8 @@ android {
         applicationId = "io.github.munzzyy.blot"
         minSdk = 28
         targetSdk = 36
-        versionCode = 403
-        versionName = "0.4.3"
+        versionCode = 500
+        versionName = "0.5.0"
     }
 
     buildTypes {

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 (2026-10-02)
 
 - Sweep and search hits land on the text on pages with a CropBox, a
   MediaBox that does not start at 0 0, a /Rotate, or text set at an angle.
